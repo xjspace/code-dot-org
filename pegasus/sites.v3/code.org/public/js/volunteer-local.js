@@ -94,6 +94,8 @@ function sendQuery(params) {
   $.post('/forms/VolunteerEngineerSubmission2015/query', $.param(params), function (response) {
     var locations = getLocations(response);
     updateResults(locations);
+    console.log("hello I am here");
+    console.log(locations.length);
   }).fail(displayQueryError);
 }
 

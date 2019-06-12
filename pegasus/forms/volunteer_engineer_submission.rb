@@ -30,6 +30,7 @@ class VolunteerEngineerSubmission < Form
   end
 
   def self.process(data)
+    puts "processing"
     {'location_p' => geocode_address(data['location_s'])}
   end
 

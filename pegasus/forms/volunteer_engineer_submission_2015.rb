@@ -120,77 +120,31 @@ class VolunteerEngineerSubmission2015 < VolunteerEngineerSubmission
   end
 
   def self.query(params)
+    puts "hello!"
+    puts name
     query = ::PEGASUS_DB[:forms].
       where(
         kind: name,
         Forms.json('data.allow_contact_b') => true,
-      ).
-      exclude(
-        Sequel.function(:coalesce, Forms.json('data.unsubscribed_s'), '') => UNSUBSCRIBE_FOREVER
       )
-
-    # UNSUBSCRIBE_HOC means a volunteer said "I want to unsubscribe until the next Hour of Code".
-    # We don't want them to be getting volunteer requests until then.  So, if we're not currently
-    # in Hour of Code, don't show that volunteer, and do that by including UNSUBSCRIBE_HOC here.
-    unless ["soon-hoc", "actual-hoc"].include?(DCDO.get("hoc_mode", CDO.default_hoc_mode))
-      query = query.exclude(
-        Sequel.function(:coalesce, Forms.json('data.unsubscribed_s'), '') => UNSUBSCRIBE_HOC
-      )
-    end
 
     coordinates = params['coordinates']
     distance = params['distance'] || DEFAULT_DISTANCE
     rows = params['num_volunteers'] || DEFAULT_NUM_VOLUNTEERS
 
-    unless params['location_flexibility_ss'].nil_or_empty?
-      location_choices = params['location_flexibility_ss'].map do |location|
-        "\"#{location}\""
-      end.join(',')
-
-      location_choices = "[#{location_choices}]"
-
-      query = query.where(
-        Sequel.function(:json_contains,
-          Forms.json('data.location_flexibility_ss'),
-          location_choices
-        )
-      )
-    end
-
-    unless params['experience_s'].nil_or_empty?
-      query = query.where(
-        Forms.json('data.experience_s') => params['experience_s']
-      )
-    end
-
     fl = "name_s,company_s,experience_s,location_flexibility_ss,volunteer_after_hoc_b,time_commitment_s,linkedin_s,facebook_s,description_s,allow_contact_b".split(',').map do |field|
       Forms.json("data.#{field}").as(field)
     end
 
-    if coordinates && distance
-      distance_query = Sequel.function(:ST_Distance_Sphere,
-        Sequel.function(:ST_PointFromText, "POINT (#{coordinates.split(',').reverse.join(' ')})", 4326),
-        Sequel.function(:ST_PointFromText,
-          Sequel.function(:concat,
-            'POINT (',
-            Sequel.function(:substring_index, Forms.json('processed_data.location_p'), ',', -1),
-            ' ',
-            Sequel.function(:substring_index, Forms.json('processed_data.location_p'), ',', 1),
-            ')'
-          ),
-          4326
-        )
-      ) / 1000
-      query = query.where Sequel.lit(Forms.json('processed_data.location_p'))
-      query = query.where {distance_query < distance}
-      fl.push distance_query.as(:distance)
-    end
+    query = query.where Sequel.lit(Forms.json('processed_data.location_p'))
+
+    p query
 
     docs = query.select(
       *fl,
       Forms.json('processed_data.location_p').as(:location_p),
       :id
-    ).limit(rows).to_a
+    ).limit(10000).to_a
     docs.each do |doc|
       doc[:location_flexibility_ss] = JSON.parse(doc[:location_flexibility_ss])
     end
