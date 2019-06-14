@@ -20,21 +20,23 @@ DB_READONLY = Sequel.connect(CDO.pegasus_db_reader.sub('mysql:', 'mysql2:'))
 year = Date.today.year - 1
 
 geojson = JSON.parse('{ "type": "FeatureCollection", "features": [] }')
+count = 0
 
-  File.open("/home/ubuntu/code-dot-org/pegasus/sites.v3/code.org/public/volunteers2.json", 'w') do |file|
-      DB_READONLY[:forms].where(kind: 'VolunteerEngineerSubmission2015').paged_each(rows_per_fetch: 10) do |form|
-        data = JSON.parse(form[:data])
-        processed_data = JSON.parse(form[:processed_data]) rescue {}
-        next if processed_data.blank?
-        coordinates = processed_data['location_p'].split(',')
+  File.open("/home/ubuntu/code-dot-org/pegasus/sites.v3/code.org/public/world.json", 'w') do |file|
+#      DB_READONLY[:forms].where(kind: 'VolunteerEngineerSubmission2015').paged_each(rows_per_fetch: 10) do |form|
+    until count > 200000 do
+      count = count + 1
+      long = rand() * 180*2 - 180
+      lat = rand() * 85*2 - 85
 
         geojson["features"] << 
           {
             geometry: {
-              coordinates: [coordinates[1].to_i, coordinates[0].to_i],
+              coordinates: [long, lat],
               type: "Point"
             },
             "properties": {
+              description: count.to_s
             },
             type: "Feature"
           }
