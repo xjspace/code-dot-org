@@ -20,8 +20,6 @@ module LevelsHelper
       else
         puzzle_page_script_stage_script_level_path(script_level.script, script_level.stage, script_level, params[:puzzle_page])
       end
-    elsif params[:sublevel_position]
-      sublevel_script_stage_script_level_path(script_level.script, script_level.stage, script_level, params[:sublevel_position])
     elsif script_level.stage.lockable?
       script_lockable_stage_script_level_path(script_level.script, script_level.stage, script_level, params)
     elsif script_level.bonus
