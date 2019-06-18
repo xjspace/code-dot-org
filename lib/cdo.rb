@@ -1,4 +1,5 @@
 require 'cdo/config'
+require 'cdo/secrets_config'
 
 ####################################################################################################
 ##
@@ -7,7 +8,9 @@ require 'cdo/config'
 ##########
 module Cdo
   class Impl < Config
+    prepend SecretsConfig
     include Singleton
+
     @slog = nil
 
     # Match CDO_*, plus RACK_ENV and RAILS_ENV.
@@ -33,9 +36,9 @@ module Cdo
         "#{root}/config.yml.erb"
       )
 
-      defaults = YAML.load_erb_file("#{root}/config.yml.erb", binding)
+      defaults = render("#{root}/config.yml.erb").first
       to_h.keys.each do |key|
-        raise "Unknown property not in defaults: #{key}" unless defaults.key?(key.to_s)
+        raise "Unknown property not in defaults: #{key}" unless defaults.key?(key.to_sym)
       end
       raise "'#{rack_env}' is not known environment." unless rack_envs.include?(rack_env)
       freeze

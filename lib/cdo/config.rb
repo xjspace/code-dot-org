@@ -25,7 +25,7 @@ module Cdo
     # Resolves dynamic config self-references by re-rendering + merging until result is unchanged.
     def load_configuration(*sources)
       config = nil
-      i = 5
+      i = 6
       table = @table
       while config != (config = render(*sources))
         raise "Can't resolve config (circular dependency?)" if (i -= 1).zero?
@@ -43,7 +43,7 @@ module Cdo
           YAML.load_file(source) || {}
         elsif File.extname(source) == '.erb'
           YAML.load_erb_file(source, binding) || {}
-        end
+        end.transform_keys(&:to_sym)
       end
     end
 
@@ -51,7 +51,7 @@ module Cdo
     # 'Reverse-merge' keeps existing values except for `nil`.
     def merge(config)
       return if config.nil?
-      table.merge!(config.transform_keys(&:to_sym)) do |_key, old, new|
+      table.merge!(config) do |_key, old, new|
         old.nil? ? new : old
       end
     end
