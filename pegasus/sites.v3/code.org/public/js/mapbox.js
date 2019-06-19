@@ -10,12 +10,12 @@ $(document).ready(function() {
   map.on('load', function() {
     map.addSource('volunteers', {
       type: 'geojson',
-      data: '/world.json',
+      data: '/hoc.json',
       cluster: true,
       clusterMaxZoom: 15,
       clusterRadius: 50
     });
-    map.getSource('volunteers').setData('/world.json');
+    map.getSource('volunteers').setData('/hoc.json');
 
     map.addLayer({
       id: 'clusters',

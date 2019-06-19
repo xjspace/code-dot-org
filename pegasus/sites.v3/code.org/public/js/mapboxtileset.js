@@ -9,11 +9,11 @@ $(document).ready(function() {
   });
   map.on('load', function() {
     map.addLayer({
-      id: 'volunteers',
+      id: 'volunteers0',
       type: 'circle',
       source: {
         type: 'vector',
-        url: 'mapbox://bethanycodeorg.world-test',
+        url: 'mapbox://bethanycodeorg.8vx8uq7m',
       },
       layout: {
         visibility: 'visible',
@@ -22,10 +22,58 @@ $(document).ready(function() {
         'circle-radius': 4,
         'circle-color': 'rgba(55,148,179,1)',
       },
-      'source-layer': 'original',
+      'source-layer': 'hoc-0-a0a4k1',
+    });
+    map.addLayer({
+      id: 'volunteers1',
+      type: 'circle',
+      source: {
+        type: 'vector',
+        url: 'mapbox://bethanycodeorg.apt2fxl5',
+      },
+      layout: {
+        visibility: 'visible',
+      },
+      paint: {
+        'circle-radius': 4,
+        'circle-color': 'rgba(55,148,179,1)',
+      },
+      'source-layer': 'hoc-1-27dxoo',
+    });
+    map.addLayer({
+      id: 'volunteers2',
+      type: 'circle',
+      source: {
+        type: 'vector',
+        url: 'mapbox://bethanycodeorg.c2y1uy6j',
+      },
+      layout: {
+        visibility: 'visible',
+      },
+      paint: {
+        'circle-radius': 4,
+        'circle-color': 'rgba(55,148,179,1)',
+      },
+      'source-layer': 'hoc-2-6z530w',
+    });
+    map.addLayer({
+      id: 'volunteers3',
+      type: 'circle',
+      source: {
+        type: 'vector',
+        url: 'mapbox://bethanycodeorg.cewp8vc3',
+      },
+      layout: {
+        visibility: 'visible',
+      },
+      paint: {
+        'circle-radius': 4,
+        'circle-color': 'rgba(55,148,179,1)',
+      },
+      'source-layer': 'hoc-3-d03g6l',
     });
 
-    map.on('click', 'volunteers', function(e) {
+    map.on('click', 'volunteers0', function(e) {
       var coordinates = e.features[0].geometry.coordinates.slice();
       var description = e.features[0].properties.description;
 
