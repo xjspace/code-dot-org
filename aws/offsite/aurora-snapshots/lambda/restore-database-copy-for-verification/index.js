@@ -41,9 +41,9 @@ exports.handler = async (event) => {
         var restoreClusterParams = {
             DBClusterIdentifier: DB_CLUSTER_IDENTIFIER,
             SnapshotIdentifier: mostRecentSnapshot.DBClusterSnapshotIdentifier,
-            Engine: DB_ENGINE
+            Engine: DB_ENGINE,
+            DBSubnetGroupName: DB_SUBNET_GROUP_NAME,
             //AvailabilityZones: [DB_AVAILABILITY_ZONE],
-            //DBSubnetGroupName: DB_SUBNET_GROUP_NAME,
             //CopyTagsToSnapshot: false,
             //DBInstanceClass: DB_INSTANCE_CLASS,
             //EnableIAMDatabaseAuthentication: true,
