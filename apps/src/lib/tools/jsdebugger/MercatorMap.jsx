@@ -1,13 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-// import {connect} from 'react-redux';
 import {geoMercator, geoPath} from 'd3-geo';
-import {scaleSqrt} from 'd3-scale';
 import {feature} from 'topojson-client';
 
-const RADIUS = 70;
-const WIDTH = 400;
-const HEIGHT = 400;
+const PROJECTION_RADIUS = 70;
+const MAP_WIDTH = 400;
+const MAP_HEIGHT = 400;
 
 class MercatorMap extends React.Component {
   static propTypes = {
@@ -26,10 +24,42 @@ class MercatorMap extends React.Component {
     });
   }
 
-  projection() {
-    return geoMercator()
-      .scale(RADIUS)
-      .translate([WIDTH / 2, HEIGHT / 2]);
+  projection = geoMercator()
+    .scale(PROJECTION_RADIUS)
+    .translate([MAP_WIDTH / 2, MAP_HEIGHT / 2]);
+
+  displayLocation() {
+    if (this.props.data.constructor === Array) {
+      return this.props.data.map((location, i) => {
+        if (location.lat && location.long) {
+          return (
+            <circle
+              fill={'red'}
+              r={3}
+              transform={`translate(${this.projection([
+                location.long,
+                location.lat
+              ])})`}
+            />
+          );
+        } else {
+          // if array does not have lat or long or both
+          // then you just want to return the inspector version of it
+          // instead of the map version
+        }
+      });
+    } else if (this.props.data.constructor === Object) {
+      return (
+        <circle
+          fill={'red'}
+          r={5}
+          transform={`translate(${this.projection([
+            this.props.data.long,
+            this.props.data.lat
+          ])})`}
+        />
+      );
+    }
   }
 
   async mercator() {
@@ -43,22 +73,17 @@ class MercatorMap extends React.Component {
     };
 
     let worldMap = await displayWorldMap();
-
-    let dataPointRadius = function() {
-      const scale = scaleSqrt()
-        .domain([0, 100])
-        .range([0, 6]);
-      return scale(Math.exp(3));
-    };
+    let path = geoPath().projection(this.projection);
 
     // TODO: consult with product/design about color scheme
+
     return (
-      <svg width={WIDTH} height={HEIGHT}>
+      <svg width={MAP_WIDTH} height={MAP_HEIGHT}>
         <g className="countries">
           {worldMap.map((d, i) => (
             <path
-              key={`path-${i}`}
-              d={geoPath().projection(this.projection())(d)}
+              key={i}
+              d={geoPath().projection(this.projection)(d)}
               className="country"
               fill={'green'}
               stroke="#FFFFFF"
@@ -66,19 +91,7 @@ class MercatorMap extends React.Component {
             />
           ))}
         </g>
-        <g className="markers">
-          <circle
-            cx={
-              this.projection()([this.props.data.lat, this.props.data.long])[0]
-            }
-            cy={
-              this.projection()([this.props.data.lat, this.props.data.long])[1]
-            }
-            r={dataPointRadius()}
-            fill="#E91E63"
-            className="marker"
-          />
-        </g>
+        <g className="markers">{this.displayLocation()}</g>
       </svg>
     );
   }

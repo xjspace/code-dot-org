@@ -283,7 +283,12 @@ export default connect(
               // https://stackoverflow.com/questions/15965166/what-is-the-maximum-length-of-latitude-and-longitude
 
               if (experiments.isEnabled('mercator')) {
-                if (rowValue.output.lat && rowValue.output.long) {
+                if (
+                  rowValue.output.constructor === Array ||
+                  rowValue.output.constructor === Object
+                ) {
+                  // if array then check to see if it has a hash in it that has keys of lat/long
+                  // what if it doesnt have a hash
                   return (
                     <MercatorMap
                       key={rowValue.output.lat}
