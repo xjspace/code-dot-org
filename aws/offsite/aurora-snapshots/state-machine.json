@@ -1,0 +1,173 @@
+{
+  "Comment": "Workflow for restoring and verifying an aurora snapshot",
+  "StartAt": "Restore",
+  "States": {
+    "Restore": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:165336972514:function:RestoreDatabaseCopyForVerification:$LATEST",
+      "ResultPath": null,
+      "Next": "Wait For Instance",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 3,
+          "MaxAttempts": 4,
+          "BackoffRate": 2
+        }
+      ]
+    },
+
+    "Wait For Instance": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "Get Instance Availability Status"
+    },
+
+    "Get Instance Availability Status": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:165336972514:function:GetRdsInstanceStatus",
+      "ResultPath": "$.status",
+      "Next": "Cluster Available?",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 3,
+          "MaxAttempts": 4,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [ "States.ALL" ],
+          "ResultPath": "$.errorInfo",
+          "Next": "Delete Instance"
+        }
+      ]
+    },
+
+    "Cluster Available?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.status",
+          "StringEquals": "available",
+          "Next": "Change Password"
+        }
+      ],
+      "Default": "Wait For Instance"
+    },
+
+    "Change Password": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:165336972514:function:ChangePassword:$LATEST",
+      "ResultPath": null,
+      "Next": "Wait For Password Change",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 3,
+          "MaxAttempts": 4,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [ "States.ALL" ],
+          "ResultPath": "$.errorInfo",
+          "Next": "Delete Instance"
+        }
+      ]
+    },
+
+    "Wait For Password Change": {
+      "Type": "Wait",
+      "Seconds": 15,
+      "Next": "Verify"
+    },
+
+    "Verify": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:165336972514:function:VerifyDatabaseCopy:$LATEST",
+      "ResultPath": null,
+      "Next": "Delete Instance",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 3,
+          "MaxAttempts": 4,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [ "States.ALL" ],
+          "ResultPath": "$.errorInfo",
+          "Next": "Delete Instance"
+        }
+      ]
+    },
+
+    "Delete Instance": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:165336972514:function:DeleteRdsInstance:$LATEST",
+      "ResultPath": null,
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 3,
+          "MaxAttempts": 4,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Wait For Instance Deletion"
+    },
+
+    "Wait For Instance Deletion": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "Get Instance Deletion Status"
+    },
+
+    "Get Instance Deletion Status": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:165336972514:function:GetRdsInstanceStatus",
+      "ResultPath": "$.status",
+      "Next": "Instance Deleted?",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 3,
+          "MaxAttempts": 4,
+          "BackoffRate": 2
+        }
+      ]
+    },
+
+    "Instance Deleted?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.status",
+          "StringEquals": "not-found",
+          "Next": "Delete Cluster"
+        }
+      ],
+      "Default": "Wait For Instance Deletion"
+    },
+
+    "Delete Cluster": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:165336972514:function:DeleteRdsCluster:$LATEST",
+      "ResultPath": null,
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 3,
+          "MaxAttempts": 4,
+          "BackoffRate": 2
+        }
+      ],
+      "End": true
+    }
+  }
+}
