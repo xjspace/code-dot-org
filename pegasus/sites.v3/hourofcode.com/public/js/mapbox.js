@@ -3,7 +3,7 @@ $(document).ready(function() {
     'pk.eyJ1IjoiYmV0aGFueWNvZGVvcmciLCJhIjoiY2p3djN3czBoMDFkdjQ4b214dnpxeHpnNyJ9.X8_R6q8yWmNLfRy8jB_X5w';
   var map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/streets-v11?optimize=true',
+    style: 'mapbox://styles/mapbox/streets-v11',
     zoom: 1,
     center: [-98, 39],
   });
