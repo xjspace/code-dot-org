@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS CloudFormation template to create an ECS Fargate stack for running https://github.com/apilayer/freegeoip/.
+
+Resources:
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AuroraVerifyBackupsEcsTaskRole
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "events.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Policies:
+        - Effect: Allow
+          Action:
+            - ecs:RunTask
+          Resource: !Ref TaskDefinition
+          Condition:
+            ArnLike:
+              ecs:cluster: !GetAtt ECSCluster.Arn
+
+  CWEInvokeECSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CWEInvokeECSRole
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/AmazonRDSFullAccess
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ecs-tasks.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${AWS::StackName}-aurora-verify-backups"
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/ecsTaskExecutionRole"
+      Cpu: 256
+      Memory: 0.5GB
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+      - Name: aurora-verify-backups
+        Essential: true
+        Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/aurora-verify-backups:latest"
+        MemoryReservation: 512
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref CloudwatchLogsGroup
+            awslogs-region: !Ref AWS::Region
+            awslogs-stream-prefix: !Sub "${AWS::StackName}-aurora-verify-backups"
+        Environment:
+          -
+            Name: DB_CLUSTER_ID
+            Value: aurora-verify-backups-cluster
+          -
+            Name: DB_INSTANCE_ID
+            Value: aurora-verify-backups-instance
+          -
+            Name: DB_SUBNET_GROUP_NAME
+            Value: !ImportValue VPC-DBSubnetGroup
+
+  CloudwatchLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "ECSLogGroup-${AWS::StackName}"
+      RetentionInDays: 14
+
+# Currently, a Cloudwatch Event Rule which runs a fargate task can't be configured via CloudFormation:
+# https://github.com/aws/containers-roadmap/issues/92
+
+#  OncePerDayRule:
+#    Type: AWS::Events::Rule
+#    Properties: 
+#      Description: Run aurora backups verification once per day.
+#      Name: !Sub "${AWS::StackName}-OncePerDay"
+#      RoleArn: String
+#      ScheduleExpression: rate(1 day)
+#      Targets:
+#        - Arn: !GetAtt ECSCluster.Arn
+#          RoleArn: !GetAtt CWEInvokeECSRole.Arn
+#          Id: FargateAuroraVerifyBackupsTarget
+#          EcsParameters:
+#            TaskCount: 1
+#            TaskDefinitionArn: !Ref TaskDefinition
