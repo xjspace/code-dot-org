@@ -67,6 +67,11 @@ const restoreLatestSnapshot = async (rds, clusterId, instanceId) => {
     }).promise();
 };
 
+// https://stackoverflow.com/a/49139664
+const sleepMs = (millis) => {
+    return new Promise(resolve => setTimeout(resolve, millis));
+};
+
 const changePassword = async (rds, clusterId, newPassword) => {
     // Update cluster password so we can connect without using production password.
     await rds.modifyDBCluster({
@@ -75,9 +80,8 @@ const changePassword = async (rds, clusterId, newPassword) => {
         ApplyImmediately: true
     }).promise();
 
-    // Sleep for 10 seconds to wait for password change to take effect.
-    // https://stackoverflow.com/a/49139664
-    await new Promise(done => setTimeout(done, 10000));
+    // Sleep for 30 seconds to wait for password change to take effect.
+    await sleepMs(30000);
 };
 
 const verifyDb = async (rds, instanceId, password) => {
