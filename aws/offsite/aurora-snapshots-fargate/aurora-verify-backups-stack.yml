@@ -1,35 +1,28 @@
+# Prerequisites:
+# - VPC stack must be created: https://github.com/code-dot-org/code-dot-org/blob/staging/aws/cloudformation/vpc.yml.erb
+#
+# Manual steps needed after stack creation:
+# - Configure Cloudwatch Event Rule to run Fargate task once per day with the following settings:
+#     Fixed rate of: 1 days
+#     Target: ECS task
+#       Cluster: ECS cluster from this stack
+#       Task Definition: Task Definition from this stack, latest revision
+#       Launch Type: Fargate
+#       Network Configuration:
+#         Subnet: A Private Subnet from VPC stack output
+#         Security Groups: default security group for VPC
+#         Auto-assign Public IP: DISABLED
+#       Role: CWEInvokeECSRole from this stack
+
 AWSTemplateFormatVersion: 2010-09-09
-Description: AWS CloudFormation template to create an ECS Fargate stack for running https://github.com/apilayer/freegeoip/.
+Description: AWS CloudFormation template to create an Fargate cluster and task definition for running Aurora backup verification.
 
 Resources:
   TaskRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: AuroraVerifyBackupsEcsTaskRole
-      AssumeRolePolicyDocument: 
-        Version: "2012-10-17"
-        Statement: 
-          - 
-            Effect: "Allow"
-            Principal: 
-              Service: 
-                - "events.amazonaws.com"
-            Action: 
-              - "sts:AssumeRole"
-      Policies:
-        - Effect: Allow
-          Action:
-            - ecs:RunTask
-          Resource: !Ref TaskDefinition
-          Condition:
-            ArnLike:
-              ecs:cluster: !GetAtt ECSCluster.Arn
-
-  CWEInvokeECSRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: CWEInvokeECSRole
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonRDSFullAccess
       AssumeRolePolicyDocument: 
         Version: "2012-10-17"
@@ -41,6 +34,41 @@ Resources:
                 - "ecs-tasks.amazonaws.com"
             Action: 
               - "sts:AssumeRole"
+
+  CWEInvokeECSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AuroraVerifyBackupsCWERole
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "events.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Policies:
+        # Grant permissions for managing specific non-admin AWS::IAM resources.
+        - PolicyName: AllowRuleToRunFargateTask
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:RunTask
+                Resource: !Ref TaskDefinition
+                Condition:
+                  ArnLike:
+                    ecs:cluster: !GetAtt ECSCluster.Arn
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: !GetAtt TaskRole.Arn
+                Condition:
+                  StringLike:
+                    iam:PassedToService: ecs-tasks.amazonaws.com
 
   ECSCluster:
     Type: AWS::ECS::Cluster
@@ -86,6 +114,7 @@ Resources:
 
 # Currently, a Cloudwatch Event Rule which runs a fargate task can't be configured via CloudFormation:
 # https://github.com/aws/containers-roadmap/issues/92
+# For now, we manually configure this rule (see instructions in comments at top of file)
 
 #  OncePerDayRule:
 #    Type: AWS::Events::Rule
