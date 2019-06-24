@@ -1,5 +1,6 @@
 # Prerequisites:
 # - VPC stack must be created: https://github.com/code-dot-org/code-dot-org/blob/staging/aws/cloudformation/vpc.yml.erb
+# - Manually build docker image using Dockerfile in this directory and push to ECR repository in same account + region as this stack
 #
 # Manual steps needed after stack creation:
 # - Configure Cloudwatch Event Rule to run Fargate task once per day with the following settings:
