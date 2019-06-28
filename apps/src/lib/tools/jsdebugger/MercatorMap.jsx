@@ -29,33 +29,27 @@ class MercatorMap extends React.Component {
     .translate([MAP_WIDTH / 2, MAP_HEIGHT / 2]);
 
   displayLocation() {
-    if (this.props.data.constructor === Array) {
-      return this.props.data.map((location, i) => {
-        if (location.lat && location.long) {
-          return (
-            <circle
-              fill={'red'}
-              r={3}
-              transform={`translate(${this.projection([
-                location.long,
-                location.lat
-              ])})`}
-            />
-          );
-        } else {
-          // if array does not have lat or long or both
-          // then you just want to return the inspector version of it
-          // instead of the map version
-        }
+    if (this.state.data.constructor === Array) {
+      return this.state.data.map((location, i) => {
+        return (
+          <circle
+            fill={'red'}
+            r={3}
+            transform={`translate(${this.projection([
+              location.long,
+              location.lat
+            ])})`}
+          />
+        );
       });
-    } else if (this.props.data.constructor === Object) {
+    } else {
       return (
         <circle
           fill={'red'}
           r={5}
           transform={`translate(${this.projection([
-            this.props.data.long,
-            this.props.data.lat
+            this.state.data.long,
+            this.state.data.lat
           ])})`}
         />
       );
@@ -76,7 +70,6 @@ class MercatorMap extends React.Component {
     let path = geoPath().projection(this.projection);
 
     // TODO: consult with product/design about color scheme
-
     return (
       <svg width={MAP_WIDTH} height={MAP_HEIGHT}>
         <g className="countries">

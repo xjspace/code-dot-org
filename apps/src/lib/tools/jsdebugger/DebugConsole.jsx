@@ -257,6 +257,30 @@ export default connect(
       return false;
     }
 
+    displayMap(output) {
+      if (output.constructor === Array) {
+        for (let i = 0; i < output.length; i++) {
+          if (
+            !(output[i].lat || output[i].lat === 0) ||
+            !(-90 <= output[i].lat && output[i].lat <= 90) ||
+            !(output[i].long || output[i].long === 0) ||
+            !(-180 <= output[i].long && output[i].long <= 180) ||
+            !(Object.keys(output[i]).length === 2)
+          ) {
+            return false;
+          }
+        }
+
+        return true;
+      } else if (output.constructor === Object) {
+        let keys = Object.keys(output);
+
+        return (
+          keys.includes('lat') && keys.includes('long') && keys.length === 2
+        );
+      }
+    }
+
     displayOutputToConsole() {
       if (this.props.logOutput.size > 0) {
         return this.props.logOutput.map((rowValue, i) => {
@@ -267,35 +291,21 @@ export default connect(
             return <div key={i}>&gt; {rowValue.input}</div>;
           } else if (this.isValidOutput(rowValue)) {
             if (rowValue.fromConsoleLog) {
-              // acceptable words: lat, long, latitude, longitude
-              // if rowValue.output.include both lat and long then plot it on map
-              // but im gona restrict it so that it has to have a hash that has lat/long
-              // which means i guess i can check type to see it's a hash if not then fail early
-              // OR i can still do rowValue.output.lat && rowVCalue.output.long
-              // OR rowValue.output can be an array of objects with lat/long
-              // so whatever rowValue.output is see it's iterable, if not that's fine still check if has lat/long
-              // LIMIT ON MAX/MIN VALUES OF LAT/LONG
-              // valid range of latitude in degrees is -90 and +90
-              // Longitude is in the range -180 and +180
               // x.123456 is limit of decimal values
               // can have 5-6 but more than 6 is a bit too much but its possible for 10 cm (or 0.1 meter) precision.
               // 6 is sufificent for most, u can have 8 decimal values though
               // https://stackoverflow.com/questions/15965166/what-is-the-maximum-length-of-latitude-and-longitude
 
-              if (experiments.isEnabled('mercator')) {
-                if (
-                  rowValue.output.constructor === Array ||
-                  rowValue.output.constructor === Object
-                ) {
-                  // if array then check to see if it has a hash in it that has keys of lat/long
-                  // what if it doesnt have a hash
-                  return (
-                    <MercatorMap
-                      key={rowValue.output.lat}
-                      data={rowValue.output}
-                    />
-                  );
-                }
+              if (
+                experiments.isEnabled('mercator') &&
+                this.displayMap(rowValue.output)
+              ) {
+                return (
+                  <MercatorMap
+                    key={rowValue.output.lat}
+                    data={rowValue.output}
+                  />
+                );
               }
 
               return <Inspector key={i} data={rowValue.output} />;
