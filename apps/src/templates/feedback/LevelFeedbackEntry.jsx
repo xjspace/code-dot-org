@@ -19,7 +19,8 @@ const styles = {
   },
   lessonDetails: {
     width: '50%',
-    margin: 15
+    margin: 15,
+    marginLeft: 10
   },
   button: {
     marginLeft: 25,
@@ -29,10 +30,12 @@ const styles = {
   },
   lessonLevel: {
     fontSize: 16,
-    marginBottom: 10
+    marginBottom: 10,
+    color: color.teal,
+    fontFamily: '"Gotham 5r", sans-serif',
+    marginLeft: 10
   },
   label: {
-    fontFamily: '"Gotham 5r", sans-serif',
     marginRight: 5,
     marginLeft: 10
   },
@@ -40,6 +43,15 @@ const styles = {
     width: '25%',
     marginTop: 30,
     fontStyle: 'italic'
+  },
+  comments: {
+    marginLeft: 25,
+    marginRight: 25,
+    marginBottom: 20,
+    fontStyle: 'italic',
+    fontSize: 14,
+    width: '100%',
+    lineHeight: 1.5
   }
 };
 
@@ -51,7 +63,8 @@ export default class LevelFeedbackEntry extends Component {
     courseName: PropTypes.string.isRequired,
     unitName: PropTypes.string.isRequired,
     lastUpdated: PropTypes.string.isRequired,
-    linkToLevel: PropTypes.string.isRequired
+    linkToLevel: PropTypes.string.isRequired,
+    comments: PropTypes.string
   };
 
   render() {
@@ -69,14 +82,11 @@ export default class LevelFeedbackEntry extends Component {
     return (
       <div style={style}>
         <div style={styles.lessonDetails}>
-          <div style={styles.lessonLevel}>
-            <span style={styles.label}>
-              {i18n.feedbackNotificationLesson()}
-            </span>
-            <span>{this.props.lessonName}</span>
+          <a style={styles.lessonLevel}>
+            <span>{this.props.lessonName}</span>,
             <span style={styles.label}>{i18n.feedbackNotificationLevel()}</span>
             <span>{this.props.levelName}</span>
-          </div>
+          </a>
           <div style={styles.courseUnit}>
             <span style={styles.label}>
               {i18n.feedbackNotificationCourse()}
@@ -99,6 +109,7 @@ export default class LevelFeedbackEntry extends Component {
           target={'_blank'}
           style={styles.button}
         />
+        <div style={styles.comments}>{this.props.comments}</div>
       </div>
     );
   }
