@@ -163,6 +163,23 @@ class Api::V1::TeacherFeedbacksControllerTest < ActionDispatch::IntegrationTest
     assert_response :bad_request
   end
 
+  test 'student cannot get feedback count for another student' do
+    section = create :section
+    student_a = create :student
+    student_b = create :student
+    section.add_student(student_a)
+    section.add_student(student_b)
+    level = create :level
+
+    teacher_sign_in_and_give_feedback(section.teacher, student_a, level, COMMENT1, PERFORMANCE1)
+    sign_out section.teacher
+
+    sign_in student_b
+    get "#{API}/get_feedbacks", params: {student_id: student_a.id, level_id: level.id}
+
+    assert_response :forbidden
+  end
+
   test 'student can retrieve feedback for a level - two comments, one teacher' do
     teacher_sign_in_and_give_feedback(@teacher, @student, @level, COMMENT1, PERFORMANCE1)
     teacher_sign_in_and_give_feedback(@teacher, @student, @level, COMMENT2, PERFORMANCE2)
