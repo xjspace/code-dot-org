@@ -142,6 +142,7 @@ export default class CircuitPlaygroundBoard extends EventEmitter {
         parseInt(port.productId, 16) === CIRCUIT_PLAYGROUND_EXPRESS_PID
       ) {
         this.boardType_ = BOARD_TYPE.EXPRESS;
+        this.fiveBoard_.isExpressBoard = true;
       } else {
         this.boardType_ = BOARD_TYPE.OTHER;
       }
@@ -161,16 +162,15 @@ export default class CircuitPlaygroundBoard extends EventEmitter {
         'Cannot initialize components: Not connected to board firmware.'
       );
     }
-    return createCircuitPlaygroundComponents(
-      this.fiveBoard_,
-      this.boardType_ === BOARD_TYPE.EXPRESS
-    ).then(components => {
-      this.prewiredComponents_ = {
-        board: this.fiveBoard_,
-        ...components,
-        ...J5_CONSTANTS
-      };
-    });
+    return createCircuitPlaygroundComponents(this.fiveBoard_).then(
+      components => {
+        this.prewiredComponents_ = {
+          board: this.fiveBoard_,
+          ...components,
+          ...J5_CONSTANTS
+        };
+      }
+    );
   }
 
   /**

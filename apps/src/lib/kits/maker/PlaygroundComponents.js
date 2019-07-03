@@ -28,10 +28,9 @@ import experiments from '../../../util/experiments';
  *
  * @param {five.Board} board - the johnny-five board object that needs new
  *        components initialized.
- * @param {boolean} expressBoard - True if the board is a Circuit Playground Express
  * @returns {Promise.<Object.<String, Object>>} board components
  */
-export function createCircuitPlaygroundComponents(board, expressBoard) {
+export function createCircuitPlaygroundComponents(board) {
   // Must initialize sound sensor BEFORE left button, otherwise left button
   // will not respond to input.  This has something to do with them sharing
   // pin 4 on the board.
@@ -59,7 +58,7 @@ export function createCircuitPlaygroundComponents(board, expressBoard) {
 
       tempSensor,
 
-      accelerometer: initializeAccelerometer(board, expressBoard),
+      accelerometer: initializeAccelerometer(board),
 
       buttonL: new Button({board, pin: 4}),
 
@@ -245,7 +244,7 @@ function initializeThermometer(board) {
   });
 }
 
-function initializeAccelerometer(board, expressBoard) {
+function initializeAccelerometer(board) {
   const accelerometer = new five.Accelerometer({
     board,
     controller: PlaygroundIO.Accelerometer
@@ -253,10 +252,7 @@ function initializeAccelerometer(board, expressBoard) {
   accelerometer.start = function() {
     accelerometer.io.sysexCommand([CP_COMMAND, CP_ACCEL_STREAM_ON]);
   };
-  accelerometer.getOrientation = function(
-    orientationType,
-    express = expressBoard
-  ) {
+  accelerometer.getOrientation = function(orientationType) {
     if (undefined === orientationType) {
       return [
         accelerometer.getOrientation('x'),
@@ -267,7 +263,7 @@ function initializeAccelerometer(board, expressBoard) {
 
     // Accelerometer on the express board is rotated 90 degrees from classic board.
     // Conditional ensures consistent output of 'pitch'/'roll' across both boards
-    if (express) {
+    if (board.isExpressBoard) {
       if (orientationType === 'pitch') {
         return accelerometer['roll'];
       } else if (orientationType === 'roll') {
