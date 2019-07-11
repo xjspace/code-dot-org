@@ -1,0 +1,196 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'ECS stack for deploying the code.org website'
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VpcId
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Comma separated list of existing VPC Subnet Ids where ECS instances will run
+  ACMCertificate:
+    Type: String
+    Description: ACM Certificate ARN to use for HTTPS listener on the ELB
+  InstanceType:
+    Type: String
+    Default: m5.2xlarge
+  ASGCount:
+    Type: Number
+    Default: 1
+    Description: Number of instances in the ASG for the application
+  ECSAMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
+    Description: AMI ID
+Resources:
+# ELB resources:
+# ELB / Target Group / Listener / ELB Security Group
+
+  ElbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ELB Allowed Ports
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        -
+          Key: Name
+          Value: !Sub "ECS ${AWS::StackName} - ALB SecurityGroup"
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      Port: 80
+      Protocol: HTTP
+      Matcher:
+          HttpCode: 200,301
+      Tags:
+        -
+          Key: Name
+          Value: !Sub "ECS ${AWS::StackName} - TargetGroup"
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      SecurityGroups:
+        - !Ref ElbSecurityGroup
+      Subnets: !Ref SubnetIds
+      Tags:
+        -
+          Key: Name
+          Value: !Sub "ECS ${AWS::StackName} - ELB"
+
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  HttpsLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref ACMCertificate
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+# ECS resources:
+# Security Group / EC2 Launch Template / EC2 Autoscaling Group
+# ECS cluster / ECS service / ECS task definition
+
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ECS Allowed Ports
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        -
+          IpProtocol: tcp
+          FromPort: 1
+          ToPort: 65535
+          SourceSecurityGroupId: !Ref ElbSecurityGroup
+        -
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+
+  ECSClusterLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub "ECSClusterLaunchTemplate-${AWS::StackName}"
+      LaunchTemplateData: 
+        BlockDeviceMappings: 
+          - 
+            DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: 50
+              VolumeType: gp2
+        IamInstanceProfile: 
+          Name: ecsInstanceRole
+        KeyName: !Sub "winter-dev-${AWS::Region}"
+        SecurityGroupIds: 
+          - !Ref ECSSecurityGroup
+        ImageId: !Ref ECSAMI
+        InstanceType: !Ref InstanceType
+        Monitoring:
+          Enabled: true
+        UserData: 
+          Fn::Base64:
+            !Sub 
+              - "#!/bin/bash\necho ECS_CLUSTER=${EcsClusterName} >> /etc/ecs/ecs.config;echo ECS_BACKEND_HOST= >> /etc/ecs/ecs.config;"
+              - {EcsClusterName: !Ref ECSCluster}
+ 
+  ECSInstanceASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref SubnetIds
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ECSClusterLaunchTemplate
+        Version: !GetAtt ECSClusterLaunchTemplate.LatestVersionNumber
+      MinSize: !Ref ASGCount
+      MaxSize: !Ref ASGCount
+      DesiredCapacity: !Ref ASGCount
+
+  CloudwatchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "cdo-site-${AWS::StackName}"
+      RetentionInDays: 14
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${AWS::StackName}-cdo-site"
+      RequiresCompatibilities:
+        - EC2
+      ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/ecsTaskExecutionRole"
+      ContainerDefinitions:
+        - 
+          Name: cdo-site
+          Essential: true
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/cdo-site:latest"
+          MemoryReservation: 8192
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref CloudwatchLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          PortMappings:
+            - 
+              ContainerPort: 80
+            -
+              ContainerPort: 443
+
+  EcsService:
+    Type: AWS::ECS::Service
+    DependsOn: LoadBalancerListener
+    Properties:
+      Cluster: !Ref ECSCluster
+      LaunchType: EC2
+      DesiredCount: !Ref ASGCount
+      LoadBalancers:
+      - ContainerName: cdo-site
+        ContainerPort: 80
+        TargetGroupArn: !Ref TargetGroup
+      TaskDefinition: !Ref TaskDefinition
