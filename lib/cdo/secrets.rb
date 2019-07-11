@@ -89,11 +89,18 @@ module Cdo
     # +GetSecretValue+ won't be performed until the secret is actually used.
     # @param fetch[Boolean] asynchronously load the object in the background
     # @param fallback[String] Fallback string to return if secret is not found.
-    def lazy(key, fetch: false, fallback: nil)
+    # @param raise_not_found[Boolean] Raise exception if secret is not found.
+    def lazy(key, fetch: false, fallback: nil, raise_not_found: false)
       key = key.to_s
       @required.add(key)
       get(key) if fetch
-      Cdo.lazy {get(key).value || fallback}
+      Cdo.lazy do
+        if raise_not_found
+          get(key).value!
+        else
+          get(key).value || fallback
+        end
+      end
     end
 
     # Ensure cached instance-variable values don't end up in any logs.

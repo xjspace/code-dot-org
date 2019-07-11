@@ -17,24 +17,15 @@ module Cdo
     private
 
     # Stores a reference to a secret so it can be resolved later.
-    # Contains an optional +default_value+ specifying the default value.
-    Secret = Struct.new(:tag, :default_value, :key)
+    Secret = Struct.new(:key)
 
-    %w(Secret EnvSecret).each do |tag|
-      YAML.add_domain_type('', tag, &Secret.method(:new))
-    end
+    YAML.add_domain_type('', 'Secret') {Secret.new}
 
     # Processes `Secret` references in the provided config hash.
-    # To disable all secrets processing, set `shared_secrets: false` in the config.
-    # When secrets are disabled the default value will be returned without any API calls.
     def process_secrets!(config)
       return if config.nil?
       config.select {|_, v| v.is_a?(Secret)}.each do |key, secret|
-        if secret.tag == 'tag::Secret' && self.shared_secrets === false
-          config[key] = secret.default_value
-        else
-          secret.key = secret_path(env, key)
-        end
+        secret.key ||= secret_path(env, key)
       end
     end
 
@@ -48,7 +39,7 @@ module Cdo
       table.select {|_k, v| v.is_a?(Secret)}.each do |key, secret|
         require 'cdo/secrets'
         cdo_secrets = self.cdo_secrets ||= Cdo::Secrets.new(logger: log)
-        table[key] = cdo_secrets.lazy(secret.key, fallback: secret.default_value)
+        table[key] = cdo_secrets.lazy(secret.key, raise_not_found: true)
         define_singleton_method(key) do
           # Replace lazy references to the underlying object on first access,
           # in order to support 'falsey' (false / nil) values.
@@ -57,6 +48,14 @@ module Cdo
           val
         end
       end
+    end
+
+    # Returns a YAML fragment clearing all secrets by overriding their values to `nil`.
+    # Any exceptions or defaults can be re-added later in the YAML document, after secrets have been cleared.
+    def clear_secrets
+      @secrets ||= []
+      @secrets |= table.select {|_, v| v.is_a?(Secret)}.keys.map(&:to_s)
+      @secrets.product([nil]).to_h.to_yaml.gsub("---\n", '')
     end
   end
 end

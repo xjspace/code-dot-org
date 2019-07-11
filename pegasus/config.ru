@@ -1,3 +1,7 @@
+require_relative '../deployment'
+# Ensure all application secrets are loaded.
+CDO.cdo_secrets.required!
+
 require File.expand_path('../router', __FILE__)
 
 unless rack_env?(:development)

@@ -54,10 +54,6 @@ rack_envs:
   - :levelbuilder
   - :integration
 
-# To disable API calls for !Secret values, set `shared_secrets: false` in the config.
-# !EnvSecret values still call the API, even when shared secrets are disabled.
-shared_secrets: true
-
 #### Third-party API credentials / configuration
 
 # OAuth provider credentials, used by Omniauth for authentication.
@@ -113,8 +109,8 @@ pardot_username:
 # Honeybadger
 honeybadger_api_token:         !Secret
 cronjobs_honeybadger_api_key:  !Secret
-dashboard_honeybadger_api_key: !Secret '00000000'
-pegasus_honeybadger_api_key:   !Secret '00000000'
+dashboard_honeybadger_api_key: !Secret
+pegasus_honeybadger_api_key:   !Secret
 
 # Zendesk
 zendesk_secret:    !Secret
@@ -135,7 +131,7 @@ hoc_map_account:          !Secret
 hoc_map_table_id:         !Secret
 ga_account:               !Secret
 ga_profile_id:            !Secret
-google_safe_browsing_key: !Secret 'fake_api_key'
+google_safe_browsing_key: !Secret
 
 # Crowdin
 crowdin_codeorg_api_key: !Secret
@@ -178,9 +174,9 @@ firebase_max_property_size: 4096
 # Configuration Options for Pusher.com integration
 # Optional for most devs, very useful if working on Internet Simulator
 use_pusher: false
-pusher_app_id:             !Secret 'fake_app_id'
-pusher_application_key:    !Secret 'fake_application_key'
-pusher_application_secret: !Secret 'fake_application_secret'
+pusher_app_id:             !Secret
+pusher_application_key:    !Secret
+pusher_application_secret: !Secret
 
 # Configuration options for Acapela-Group.com integration
 use_acapela:
@@ -247,7 +243,7 @@ netsim_shard_expiry_seconds: 7200
 # The Fusion Table ID for the census map shown at code.org/yourschool.  If this
 # is set to the ID for the production site, be careful not to run
 # update_census_map as it will overwrite that table.
-census_map_table_id: !Secret '1AUZYRjLMI5NiQsDeDBGFsOIFpL_rLGsnxNpSyR13'
+census_map_table_id: !Secret
 
 # DynamoDB table names for dcdo/gatekeeper
 dcdo_table_name:       dcdo_<%=env%>
@@ -259,7 +255,7 @@ poste_attachment_dir:
 poste_smtp_password: !Secret
 poste_smtp_server:   !Secret
 poste_smtp_user:     !Secret
-poste_secret:        !Secret 'not a real secret'
+poste_secret:        !Secret
 
 # Chef defaults
 chef_managed: false
@@ -351,8 +347,8 @@ build_pegasus: true
 override_dashboard:
 dashboard_assets_dir: <%=root_dir%>/dashboard/public/assets
 dashboard_devise_secret:   !Secret
-dashboard_devise_pepper:   !Secret 'not a pepper!'
-dashboard_secret_key_base: !Secret 'not a secret'
+dashboard_devise_pepper:   !Secret
+dashboard_secret_key_base: !Secret
 dashboard_host: 0.0.0.0
 dashboard_port: 3000
 dashboard_workers: 8
@@ -478,13 +474,13 @@ logs_bucket:
 redshift_host: !Secret
 redshift_password: !Secret
 
-devinternal_db_writer: !EnvSecret
+devinternal_db_writer: !Secret
 
 db_cluster_id:
 db_admin: !Secret
 reporting_db_admin: !Secret
 
-db_writer: !Secret 'mysql://root@localhost/'
+db_writer: !Secret
 reporting_db_writer: <%=db_writer%>
 
 dashboard_db_name: dashboard_<%=env%>

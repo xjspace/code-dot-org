@@ -48,12 +48,10 @@ module Cdo
     end
 
     # Merge the provided config hash into the current config.
-    # 'Reverse-merge' keeps existing values except for `nil`.
+    # 'Reverse-merge' keeps existing values.
     def merge(config)
       return if config.nil?
-      table.merge!(config) do |_key, old, new|
-        old.nil? ? new : old
-      end
+      table.merge!(config) {|_key, old, _new| old}
     end
 
     # API for providing a default value for a property lookup.
