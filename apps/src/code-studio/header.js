@@ -10,10 +10,10 @@ import {
   showLevelBuilderSaveButton,
   setProjectUpdatedError,
   setProjectUpdatedSaving,
-  setProjectUpdatedSaved,
   showProjectUpdatedAt,
   setProjectUpdatedAt,
-  refreshProjectName
+  refreshProjectName,
+  setShowTryAgainDialog
 } from './headerRedux';
 
 import progress from './progress';
@@ -208,22 +208,23 @@ header.showLevelBuilderSaveButton = function(getChanges) {
 
 /**
  * @param {object} options{{
- *   showShareAndRemix: boolean
+ *   showShareAndRemix: boolean,
+ *   showExport: boolean
  * }}
  */
 header.showHeaderForProjectBacked = function(options) {
   if (options.showShareAndRemix) {
-    getStore().dispatch(showProjectBackedHeader());
+    getStore().dispatch(showProjectBackedHeader(options.showExport));
   }
 
   getStore().dispatch(showProjectUpdatedAt());
   header.updateTimestamp();
 };
 
-header.showProjectHeader = function() {
+header.showProjectHeader = function(options) {
   header.updateTimestamp();
   getStore().dispatch(refreshProjectName());
-  getStore().dispatch(showProjectHeader());
+  getStore().dispatch(showProjectHeader(options.showExport));
 };
 
 header.updateTimestamp = function() {
@@ -239,8 +240,12 @@ header.showProjectSaving = () => {
   getStore().dispatch(setProjectUpdatedSaving());
 };
 
-header.showProjectSaved = () => {
-  getStore().dispatch(setProjectUpdatedSaved());
+header.showTryAgainDialog = () => {
+  getStore().dispatch(setShowTryAgainDialog(true));
+};
+
+header.hideTryAgainDialog = () => {
+  getStore().dispatch(setShowTryAgainDialog(false));
 };
 
 export default header;

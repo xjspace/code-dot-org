@@ -856,8 +856,6 @@
   coursee_name: "과정 E"
   coursef-draft_name: 과정 F
   coursef_name: "과정 F"
-  accelerated_name: "빠른 과정"
-  cspunit1_name: "CS 원리 1단원"
   cspunit2_name: "CS 원리 2단원"
   cspunit3_name: "CS Principles Unit 3"
   cspunit4_name: "CS 원리 4단원"
@@ -882,6 +880,7 @@
   cspexam1-mWU7ilDYM9_name: 테스트 part 1 - 25문항
   cspexam2-AKwgAh1ac5_name: 테스트 part 2 - 25문항
   cspunit3_gradelevel: "9-12 학년"
+  accelerated_name: "빠른 과정"
   20-hour_name: 빠른 과정
   algebra_name: "대수학에서의 CS"
   AlgebraA_name: "대수학에서의 CS 코스 A"
@@ -964,6 +963,8 @@
   coursee-2017_gradelevel: 나이 8세-12세
   coursed-2018_gradelevel: 8 학년 이상
   coursee-2018_gradelevel: 나이 8세-12세
+  coursed-2019_gradelevel: 8 학년 이상
+  coursee-2019_gradelevel: 나이 8세-12세
   accelerated_gradelevel: "나이 10세-13세"
   codeorg_platformtext: "최신 웹브라우저, 스마트폰, 태블릿"
   codeintl_platformtext: "최신 웹브라우저, 스마트폰, 태블릿"

@@ -49,7 +49,6 @@ class ScriptLevel < ActiveRecord::Base
   serialized_attrs %w(
     variants
     progression
-    target
     challenge
   )
 
@@ -128,11 +127,14 @@ class ScriptLevel < ActiveRecord::Base
   end
 
   def next_level_or_redirect_path_for_user(user, extras_stage=nil)
-    # if we're coming from an unplugged level, it's ok to continue to unplugged
-    # level (example: if you start a sequence of assessments associated with an
-    # unplugged level you should continue on that sequence instead of skipping to
-    # next stage)
-    if valid_progression_level?(user)
+    if bubble_choice?
+      # Redirect user back to the BubbleChoice activity page.
+      level_to_follow = self
+    elsif valid_progression_level?(user)
+      # if we're coming from an unplugged level, it's ok to continue to unplugged
+      # level (example: if you start a sequence of assessments associated with an
+      # unplugged level you should continue on that sequence instead of skipping to
+      # next stage)
       level_to_follow = next_progression_level(user)
     else
       # don't ever continue continue to a locked/hidden level
@@ -231,6 +233,10 @@ class ScriptLevel < ActiveRecord::Base
 
   def anonymous?
     return level.properties["anonymous"] == "true"
+  end
+
+  def bubble_choice?
+    oldest_active_level.is_a? BubbleChoice
   end
 
   def name
@@ -396,10 +402,16 @@ class ScriptLevel < ActiveRecord::Base
   def summarize_for_teacher_panel(student)
     contained_levels = levels.map(&:contained_levels).flatten
     contained = contained_levels.any?
-    levels = contained ? contained_levels : [level]
+
+    levels = if bubble_choice?
+               [level.best_result_sublevel(student) || level]
+             elsif contained
+               contained_levels
+             else
+               [level]
+             end
 
     user_level = student.last_attempt_for_any(levels)
-
     status = activity_css_class(user_level)
     passed = [SharedConstants::LEVEL_STATUS.passed, SharedConstants::LEVEL_STATUS.perfect].include?(status)
 
@@ -432,6 +444,16 @@ class ScriptLevel < ActiveRecord::Base
     end
 
     teacher_panel_summary
+  end
+
+  def summary_for_feedback
+    {
+      lessonName: stage.name,
+      levelNum: position,
+      linkToLevel: path,
+      unitName: stage.script.localized_title,
+      linkToUnit: stage.script.link
+    }
   end
 
   def self.cache_find(id)

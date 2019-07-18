@@ -134,6 +134,12 @@ module ScriptConstants
       CSD5_NAME = 'csd5-2017'.freeze,
       CSD6_NAME = 'csd6-2017'.freeze,
     ],
+    # Currently only used for TTS.
+    csp_2019: [
+      CSP3_2019_NAME = 'csp3-2019'.freeze,
+      CSP5_2019_NAME = 'csp5-2019'.freeze,
+      CSP_POSTAP_2019_NAME = 'csppostap-2019'.freeze,
+    ],
     csp_2018: [
       CSP1_2018_NAME = 'csp1-2018'.freeze,
       CSP2_2018_NAME = 'csp2-2018'.freeze,
@@ -184,6 +190,22 @@ module ScriptConstants
       TTS_NAME = 'allthettsthings'.freeze
     ],
   }.freeze
+
+  ADDITIONAL_I18N_SCRIPTS = [
+    APPLAB_1HOUR = 'applab-1hour'.freeze,
+    APPLAB_2HOUR = 'applab-2hour'.freeze,
+    CSD_POST_SURVEY = 'csd-post-survey'.freeze,
+    DEEPDIVE_DEBUGGING = 'deepdive-debugging'.freeze,
+    FESBINARY = 'fesbinary'.freeze,
+    FREQUENCY_ANALYSIS = 'frequency_analysis'.freeze,
+    GAMELAB = 'gamelab'.freeze,
+    K1HOC_2017 = 'k1hoc2017'.freeze,
+    K5_ONLINE_PD = 'K5-OnlinePD'.freeze,
+    NETSIM = 'netsim'.freeze,
+    ODOMETER = 'odometer'.freeze,
+    PIXELATION = 'pixelation'.freeze,
+    VIGENERE = 'vigenere'.freeze
+  ]
 
   DEFAULT_VERSION_YEAR = '2017'
 
@@ -295,6 +317,13 @@ module ScriptConstants
     ScriptConstants.script_in_category?(:csf_international, script) ||
       ScriptConstants.script_in_category?(:csf, script) ||
       ScriptConstants.script_in_category?(:csf_2018, script) ||
-      ScriptConstants.script_in_category?(:twenty_hour, script)
+      ScriptConstants.script_in_category?(:csf_2019, script) ||
+      ScriptConstants.script_in_category?(:csd, script) ||
+      ScriptConstants.script_in_category?(:csd_2018, script) ||
+      ScriptConstants.script_in_category?(:csd_2019, script) ||
+      ScriptConstants.script_in_category?(:twenty_hour, script) ||
+      ScriptConstants.script_in_category?(:hoc, script) ||
+      JIGSAW_NAME == script ||
+      ADDITIONAL_I18N_SCRIPTS.include?(script)
   end
 end

@@ -793,8 +793,6 @@
   coursee_name: "Կուրս E"
   coursef-draft_name: Կուրս F
   coursef_name: "Կուրս F"
-  accelerated_name: "Արագացված Դասընթացի"
-  cspunit1_name: "CS Principles Unit 1"
   cspunit2_name: "CS Principles Unit 2"
   cspunit3_name: "CS Principles Unit 3"
   cspunit4_name: "CS Principles Unit 4"
@@ -810,6 +808,7 @@
   cspexam1-mWU7ilDYM9_name: Test Part 1 - 25 questions
   cspexam2-AKwgAh1ac5_name: Test Part 2 - 25 questions
   cspunit3_gradelevel: "Grades 9-12"
+  accelerated_name: "Արագացված Դասընթացի"
   20-hour_name: Արագացված Դասընթացի
   algebra_name: "CS in Algebra"
   AlgebraA_name: "CS in Algebra Course A"
@@ -887,6 +886,8 @@
   coursee-2017_gradelevel: Ages 8-12
   coursed-2018_gradelevel: Grade 8+
   coursee-2018_gradelevel: Ages 8-12
+  coursed-2019_gradelevel: Grade 8+
+  coursee-2019_gradelevel: Ages 8-12
   accelerated_gradelevel: "Ages 10-18"
   codeorg_platformtext: "Modern browsers, smartphones, tablets"
   codeintl_platformtext: "Modern browsers, smartphones, tablets"

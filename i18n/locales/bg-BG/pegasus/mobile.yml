@@ -840,8 +840,6 @@
   course2_name: "Курс 2"
   course3_name: "Курс 3"
   course4_name: "Курс 4"
-  accelerated_name: "Ускорен курс"
-  cspunit1_name: "(стар) Урок 1: Цифрова информация"
   cspunit2_name: "(стар) Раздел 2: Интернет"
   cspunit3_name: "(стар) Раздел 3: програмиране"
   cspunit4_name: "(стар) Раздел 4: данни"
@@ -858,6 +856,7 @@
   cspexam2-AKwgAh1ac5_name: Тест част 2 - 25 въпроси
   cspunit3_gradelevel: "Класове 9-12"
   cspunit3_shortdescription_congrats: "Тази част въвежда фундаменталните концепции за компютърно програмиране, което отключва възможността да се правят богати, интерактивни приложения. Този курс използва JavaScript като език за програмиране, както и Ап лабораторията като програмната среда за изграждане на приложения, но концепцията, която ще научите в тези уроци обхваща всички езици за програмиране и инструменти."
+  accelerated_name: "Ускорен курс"
   20-hour_name: Ускорен курс
   algebra_name: "CS в алгебрата"
   AlgebraA_name: "CS в алгебрата курс А"
@@ -940,6 +939,8 @@
   coursee-2017_gradelevel: Възраст 8-12
   coursed-2018_gradelevel: Клас 8 +
   coursee-2018_gradelevel: Възраст 8-12
+  coursed-2019_gradelevel: Клас 8 +
+  coursee-2019_gradelevel: Възраст 8-12
   accelerated_gradelevel: "Възраст 10 + (след курс 3)"
   codeorg_platformtext: "Съвременни браузъри, смартфони, таблети"
   codeintl_platformtext: "Съвременни браузъри, смартфони, таблети"

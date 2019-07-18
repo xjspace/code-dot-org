@@ -55,7 +55,6 @@ eu:
   of: "-tik"
   more: "GEHIAGO"
   less: "GUTXIAGO"
-  beta: "beta"
   try_hoc: "Probatu kode ordu bat. Klikatu hemen >> "
   try_k8intro: "Probatu gure 2. DBHko Informatikarako Sarrera kurtsoa (15-25 ordu)"
   k8intro: "2. DBHko Informatikarako Sarrera kurtsoa (15-25 ordu)"
@@ -361,7 +360,6 @@ eu:
   pdf_download: 'Jaitsi PDFa'
   download_coming_soon: 'Jarduera deskargagarria aurki.'
   video_coming_soon: 'Bideoa laster!'
-  not_started: 'Ikaslea ez da saiatu maila honetan.'
   share_code:
     title: "Sakatu \"Hasi\" nire programa martxan ikusteko"
     bounce_og_title: "Berrikusi nire errebote jokoa"
@@ -515,11 +513,8 @@ eu:
     create: "Sortu proiektua"
     create_a_project: 'Sortu proiektu berria:'
     new: "Berria sortu"
-    rename: "Aldatu izena"
-    save: "Gorde"
     exit: "Itzuli kurtsora"
     project_gallery: "Proiektuak"
-    share: "Partekatu"
     share_title: Partekatu zure proiektuak
     share_copy_link: "Esteka kopiatu:"
     name: "Izena"
@@ -530,8 +525,6 @@ eu:
     saved: "Gordeta"
     not_saved: "Gorde gabe"
     view_all: 'Ikusi Nire Proiektuak'
-    remix: 'Nahastu'
-    click_to_remix: "Klikatu \"Nahastu\" zure bertsioa lortzeko!"
     edit_project: 'Editatu Proiektua'
     abuse:
       tos: "Proiektu honek Code.org-en <a href='http://code.org/tos'>Zerbitzuaren Baldintzak</a> hautsi ditu eta ezin da konpartitu."

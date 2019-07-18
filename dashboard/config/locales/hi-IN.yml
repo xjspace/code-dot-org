@@ -77,7 +77,6 @@ hi:
   of: की
   more: अधिक
   less: कम
-  beta: बीटा
   try_hoc: 'ऑवर ऑफ़ कोड का प्रयास करे, यहाँ क्लिक करें >> '
   try_k8intro: हमारा K-8 कंप्यूटर विज्ञान का परिचय पाठ्यक्रम (१५-२५ घंटे) का प्रयास
     करें
@@ -254,7 +253,7 @@ hi:
       course_catalog: कोर्स कैटलॉग
       project_gallery: प्रोजेक्ट्स
       help_support: सहायता और समर्थन
-      report_bug: "“समस्या की रिपोर्ट करें”"
+      report_bug: समस्या की रिपोर्ट करें
       about: के बारे में
     user:
       signin: दाखिल करना
@@ -352,14 +351,10 @@ hi:
     projects: प्रोजेक्ट्स
     create: प्रोजेक्ट बनाएँ
     new: नया बनाएँ
-    rename: नाम बदलें
-    save: सहेजें
     exit: पाठ्यक्रम पर लौटें
     project_gallery: प्रोजेक्ट्स
-    share: शेयर करें
     name: नाम
     saved: सहेजा गया
-    remix: रीमिक्स
   flex_category:
     csf_loops: फंदे
     csf_events: घटनाएँ

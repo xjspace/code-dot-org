@@ -1,15 +1,20 @@
 /* global appOptions */
 import $ from 'jquery';
+import MD5 from 'crypto-js/md5';
 import msg from '@cdo/locale';
 import * as utils from '../../utils';
 import {CIPHER, ALPHABET} from '../../constants';
 import {files as filesApi} from '../../clientApi';
 import firehoseClient from '@cdo/apps/lib/util/firehose';
+import {AbuseConstants} from '@cdo/apps/util/sharedConstants';
+import experiments from '@cdo/apps/util/experiments';
 
 // Attempt to save projects every 30 seconds
 var AUTOSAVE_INTERVAL = 30 * 1000;
 
-var ABUSE_THRESHOLD = 15;
+const NUM_ERRORS_BEFORE_WARNING = 3;
+
+var ABUSE_THRESHOLD = AbuseConstants.ABUSE_THRESHOLD;
 
 var hasProjectChanged = false;
 
@@ -83,6 +88,9 @@ let newSourceVersionInterval = 15 * 60 * 1000; // 15 minutes
 var currentAbuseScore = 0;
 var sharingDisabled = false;
 var currentHasPrivacyProfanityViolation = false;
+var currentShareFailureEnglish = '';
+var currentShareFailureIntl = '';
+var intlLanguage = false;
 var isEditing = false;
 let initialSaveComplete = false;
 let initialCaptureComplete = false;
@@ -120,8 +128,8 @@ function unpackSources(data) {
     html: data.html,
     animations: data.animations,
     makerAPIsEnabled: data.makerAPIsEnabled,
-    selectedSong: data.selectedSong,
-    libraries: data.libraries
+    generatedProperties: data.generatedProperties,
+    selectedSong: data.selectedSong
   };
 }
 
@@ -259,6 +267,19 @@ var projects = (module.exports = {
     return currentSources.makerAPIsEnabled;
   },
 
+  /**
+   * Calculates a md5 hash for everything within sources except the
+   * generatedProperties.
+   * @return {string} md5 hash string.
+   */
+  md5CurrentSources() {
+    const {
+      generatedProperties, // eslint-disable-line no-unused-vars
+      ...sourcesWithoutProperties
+    } = currentSources;
+    return MD5(JSON.stringify(sourcesWithoutProperties)).toString();
+  },
+
   getCurrentSourceVersionId() {
     return currentSourceVersionId;
   },
@@ -344,6 +365,27 @@ var projects = (module.exports = {
    */
   hasPrivacyProfanityViolation() {
     return currentHasPrivacyProfanityViolation;
+  },
+
+  /**
+   * @returns {string} the text that was flagged by our content moderation service for being potentially private or profane in English.
+   */
+  privacyProfanityDetailsEnglish() {
+    return currentShareFailureEnglish;
+  },
+
+  /**
+   * @returns {string} the text that was flagged by our content moderation service for being potentially private or profane in an language other than English.
+   */
+  privacyProfanityDetailsIntl() {
+    return currentShareFailureIntl;
+  },
+
+  /**
+   * @returns {string} a 2-character language code if the content moderation service ran in a language other than English.
+   */
+  privacyProfanitySecondLanguage() {
+    return intlLanguage;
   },
 
   /**
@@ -448,7 +490,9 @@ var projects = (module.exports = {
 
   showProjectHeader() {
     if (this.shouldUpdateHeaders()) {
-      header.showProjectHeader();
+      header.showProjectHeader({
+        showExport: this.shouldShowExport()
+      });
     }
   },
 
@@ -468,10 +512,23 @@ var projects = (module.exports = {
     );
   },
 
+  // Currently, only applab when the experiment is enabled. Hide if
+  // hideShareAndRemix is set on the level.
+  shouldShowExport() {
+    const {level = {}, app} = appOptions;
+    const {hideShareAndRemix} = level;
+    return (
+      !hideShareAndRemix &&
+      (app === 'applab' || app === 'gamelab') &&
+      experiments.isEnabled('exportExpo')
+    );
+  },
+
   showHeaderForProjectBacked() {
     if (this.shouldUpdateHeaders()) {
       header.showHeaderForProjectBacked({
-        showShareAndRemix: !this.shouldHideShareAndRemix()
+        showShareAndRemix: !this.shouldHideShareAndRemix(),
+        showExport: this.shouldShowExport()
       });
     }
   },
@@ -501,6 +558,8 @@ var projects = (module.exports = {
    * @param {function(): string} sourceHandler.getLevelSource
    * @param {function(SerializedAnimationList)} sourceHandler.setInitialAnimationList
    * @param {function(function(): SerializedAnimationList)} sourceHandler.getAnimationList
+   * @param {function(Object)} sourceHandler.setInitialGeneratedProperties
+   * @param {function(): Object} sourceHandler.getGeneratedProperties
    * @param {function(boolean)} sourceHandler.setMakerAPIsEnabled
    * @param {function(): boolean} sourceHandler.getMakerAPIsEnabled
    * @param {function(): boolean} sourceHandler.setSelectedSong
@@ -530,8 +589,10 @@ var projects = (module.exports = {
         sourceHandler.setInitialAnimationList(currentSources.animations);
       }
 
-      if (currentSources.libraries) {
-        sourceHandler.setInitialLevelLibraries(currentSources.libraries);
+      if (currentSources.generatedProperties) {
+        sourceHandler.setInitialGeneratedProperties(
+          currentSources.generatedProperties
+        );
       }
 
       if (isEditing) {
@@ -929,6 +990,9 @@ var projects = (module.exports = {
                 saveSourcesErrorCount,
                 err.message
               );
+              if (saveSourcesErrorCount >= NUM_ERRORS_BEFORE_WARNING) {
+                header.showTryAgainDialog();
+              }
               return;
             }
           } else if (saveSourcesErrorCount > 0) {
@@ -1023,13 +1087,6 @@ var projects = (module.exports = {
   },
 
   /**
-   * Asks the sourceHandler for the list of functions in an app
-   */
-  getLibraryFromApp() {
-    return this.sourceHandler.getLibrary();
-  },
-
-  /**
    * Ask the configured sourceHandler for the latest project save data and
    * pass it to the provided callback.
    * @param {function} callback
@@ -1037,31 +1094,29 @@ var projects = (module.exports = {
    */
   getUpdatedSourceAndHtml_(callback) {
     this.sourceHandler.getAnimationList(animations =>
-      this.sourceHandler.getLevelSource().then(response => {
-        const source = response;
+      this.sourceHandler.getLevelSource().then(source => {
         const html = this.sourceHandler.getLevelHtml();
         const makerAPIsEnabled = this.sourceHandler.getMakerAPIsEnabled();
         const selectedSong = this.sourceHandler.getSelectedSong();
-        const libraries =
-          this.sourceHandler.getLevelLibraries &&
-          this.sourceHandler.getLevelLibraries();
-        var sourceAndHtml = {
+        const generatedProperties = this.sourceHandler.getGeneratedProperties();
+        callback({
           source,
           html,
           animations,
           makerAPIsEnabled,
-          selectedSong
-        };
-        if (libraries) {
-          sourceAndHtml['libraries'] = libraries;
-        }
-        callback(sourceAndHtml);
+          selectedSong,
+          generatedProperties
+        });
       })
     );
   },
 
   getSelectedSong() {
     return currentSources.selectedSong;
+  },
+
+  getGeneratedProperties() {
+    return currentSources.generatedProperties;
   },
 
   /**
@@ -1076,23 +1131,6 @@ var projects = (module.exports = {
           {
             ...sourceAndHtml,
             makerAPIsEnabled: !sourceAndHtml.makerAPIsEnabled
-          },
-          () => {
-            resolve();
-            utils.reload();
-          }
-        );
-      });
-    });
-  },
-
-  addLibrary(data) {
-    return new Promise(resolve => {
-      this.getUpdatedSourceAndHtml_(sourceAndHtml => {
-        this.saveSourceAndHtml_(
-          {
-            ...sourceAndHtml,
-            libraries: [data]
           },
           () => {
             resolve();
@@ -1139,6 +1177,9 @@ var projects = (module.exports = {
         saveChannelErrorCount,
         err + ''
       );
+      if (saveChannelErrorCount >= NUM_ERRORS_BEFORE_WARNING) {
+        header.showTryAgainDialog();
+      }
       return;
     } else if (saveChannelErrorCount) {
       // If the previous errors occurred due to network problems, we may not
@@ -1151,6 +1192,7 @@ var projects = (module.exports = {
       );
     }
     saveChannelErrorCount = 0;
+    header.hideTryAgainDialog();
 
     // The following race condition can lead to thumbnail URLs not being stored
     // in the project metadata:
@@ -1590,6 +1632,26 @@ function fetchSharingDisabled(resolve) {
   });
 }
 
+function fetchShareFailure(resolve) {
+  channels.fetch(current.id + '/share-failure', function(err, data) {
+    currentShareFailureEnglish =
+      data && data.share_failure && data.share_failure.content
+        ? data.share_failure.content
+        : currentShareFailureEnglish;
+    currentShareFailureIntl =
+      data && data.intl_share_failure && data.intl_share_failure.content
+        ? data.intl_share_failure.content
+        : currentShareFailureIntl;
+    intlLanguage = data && data.language ? data.language : intlLanguage;
+    resolve();
+    if (err) {
+      // Throw an error so that things like New Relic see this. This shouldn't
+      // affect anything else
+      throw err;
+    }
+  });
+}
+
 function fetchPrivacyProfanityViolations(resolve) {
   channels.fetch(current.id + '/privacy-profanity', (err, data) => {
     // data.has_violation is 0 or true, coerce to a boolean
@@ -1605,7 +1667,10 @@ function fetchPrivacyProfanityViolations(resolve) {
 }
 
 function fetchAbuseScoreAndPrivacyViolations(project, callback) {
-  const deferredCallsToMake = [new Promise(fetchAbuseScore)];
+  const deferredCallsToMake = [
+    new Promise(fetchAbuseScore),
+    new Promise(fetchShareFailure)
+  ];
 
   if (project.getStandaloneApp() === 'playlab') {
     deferredCallsToMake.push(new Promise(fetchPrivacyProfanityViolations));

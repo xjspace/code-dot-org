@@ -218,6 +218,7 @@
   coursee_gradelevel: "उम्र 8-12"
   coursee-2017_gradelevel: उम्र 8-12
   coursee-2018_gradelevel: उम्र 8-12
+  coursee-2019_gradelevel: उम्र 8-12
   boxisland_platformtext: "एंड्रॉयड, आईओएस"
   codeorg_beyond_gradelevel: "उम्र 4-104"
   tynker_beyond_gradelevel: "उम्र 5-13"
@@ -248,7 +249,8 @@
   header_course_catalog: "कोर्स कैटलॉग"
   header_project_gallery: "प्रोजेक्ट्स"
   header_about: "के बारे में"
-  header_report_bug: "“समस्या की रिपोर्ट करें”"
+  header_help_support: 'सहायता और समर्थन '
+  header_report_bug: "समस्या की रिपोर्ट करें"
   user_header_signin: "दाखिल करना"
   user_header_dance: "डांस पार्टी"
   applab_tile_start_tutorial: "शुरू करें"

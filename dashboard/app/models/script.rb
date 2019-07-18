@@ -478,9 +478,12 @@ class Script < ActiveRecord::Base
 
     family_scripts = Script.get_family_from_cache(family_name).sort_by(&:version_year).reverse
 
-    if user
+    # Only students should be redirected based on script progress and/or section assignments.
+    if user&.student?
       assigned_script_ids = user.section_scripts.pluck(:id)
-      script_name = family_scripts.select {|s| assigned_script_ids.include?(s.id)}&.first&.name
+      progress_script_ids = user.user_levels.map(&:script_id)
+      script_ids = assigned_script_ids.concat(progress_script_ids).compact.uniq
+      script_name = family_scripts.select {|s| script_ids.include?(s.id)}&.first&.name
       return Script.new(redirect_to: script_name) if script_name
     end
 
@@ -676,16 +679,29 @@ class Script < ActiveRecord::Base
     ScriptConstants.script_in_category?(:csf_international, name)
   end
 
+  def self.script_names_by_curriculum_umbrella(curriculum_umbrella)
+    Script.where("properties -> '$.curriculum_umbrella' = ?", curriculum_umbrella).pluck(:name)
+  end
+
+  def under_curriculum_umbrella?(specific_curriculum_umbrella)
+    curriculum_umbrella == specific_curriculum_umbrella
+  end
+
   def k5_course?
-    (
-      Script::CATEGORIES[:csf_international] +
-      Script::CATEGORIES[:csf] +
-      Script::CATEGORIES[:csf_2018]
-    ).include? name
+    return false if twenty_hour?
+    csf?
   end
 
   def csf?
-    k5_course? || twenty_hour?
+    under_curriculum_umbrella?('CSF')
+  end
+
+  def csd?
+    under_curriculum_umbrella?('CSD')
+  end
+
+  def csp?
+    under_curriculum_umbrella?('CSP')
   end
 
   def cs_in_a?
@@ -771,6 +787,10 @@ class Script < ActiveRecord::Base
       Script::CSD3_2018_NAME,
       Script::CSD4_2018_NAME,
       Script::CSD6_2018_NAME,
+      Script::CSD2_2019_NAME,
+      Script::CSD3_2019_NAME,
+      Script::CSD4_2019_NAME,
+      Script::CSD6_2019_NAME
     ].include?(name)
   end
 
@@ -782,6 +802,9 @@ class Script < ActiveRecord::Base
       Script::CSP3_2018_NAME,
       Script::CSP5_2018_NAME,
       Script::CSP_POSTAP_2018_NAME,
+      Script::CSP3_2019_NAME,
+      Script::CSP5_2019_NAME,
+      Script::CSP_POSTAP_2019_NAME
     ].include?(name)
   end
 
@@ -826,9 +849,10 @@ class Script < ActiveRecord::Base
 
   def has_banner?
     # Temporarily remove Course A-F banner (wrong size) - Josh L.
-    return false if ScriptConstants.script_in_category?(:csf, name) || ScriptConstants.script_in_category?(:csf_2018, name)
+    return true if csf_international?
+    return false if csf?
 
-    k5_course? || [
+    [
       Script::CSP17_UNIT1_NAME,
       Script::CSP17_UNIT2_NAME,
       Script::CSP17_UNIT3_NAME,
@@ -1162,6 +1186,7 @@ class Script < ActiveRecord::Base
             hidden: general_params[:hidden].nil? ? true : general_params[:hidden], # default true
             login_required: general_params[:login_required].nil? ? false : general_params[:login_required], # default false
             wrapup_video: general_params[:wrapup_video],
+            family_name: general_params[:family_name],
             properties: Script.build_property_hash(general_params)
           },
           script_data[:stages],
@@ -1232,10 +1257,10 @@ class Script < ActiveRecord::Base
           }
         end
       end
-      # unlike stages_i18n, we don't expect meta_i18n to have the full tree
       metadata_i18n = {'en' => {'data' => {'script' => {'name' => {script_name => metadata_i18n.to_h}}}}}
     end
 
+    stages_i18n = {'en' => {'data' => {'script' => {'name' => stages_i18n}}}}
     existing_i18n.deep_merge(stages_i18n) {|_, old, _| old}.deep_merge!(metadata_i18n)
   end
 
@@ -1323,7 +1348,9 @@ class Script < ActiveRecord::Base
       pilot_experiment: pilot_experiment,
       show_assign_button: assignable?(user),
       project_sharing: project_sharing,
-      curriculum_umbrella: curriculum_umbrella
+      curriculum_umbrella: curriculum_umbrella,
+      family_name: family_name,
+      version_year: version_year
     }
 
     summary[:stages] = stages.map {|stage| stage.summarize(include_bonus_levels)} if include_stages
@@ -1455,6 +1482,7 @@ class Script < ActiveRecord::Base
       has_lesson_plan: !!script_data[:has_lesson_plan],
       curriculum_path: script_data[:curriculum_path],
       script_announcements: script_data[:script_announcements] || false,
+      family_name: script_data[:family_name],
       version_year: script_data[:version_year],
       is_stable: script_data[:is_stable],
       supported_locales: script_data[:supported_locales],
@@ -1624,7 +1652,7 @@ class Script < ActiveRecord::Base
     all_scripts.any? {|script| script.has_pilot_experiment?(user)}
   end
 
-  def self.script_names_by_curriculum_umbrella(curriculum_umbrella)
-    Script.where("properties -> '$.curriculum_umbrella' = ?", curriculum_umbrella).pluck(:name)
+  def self.get_version_year_options
+    Course.get_version_year_options
   end
 end

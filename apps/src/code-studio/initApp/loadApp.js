@@ -472,15 +472,6 @@ const sourceHandler = {
   getLevelHtml() {
     return window.Applab && Applab.getHtml();
   },
-  getLibrary() {
-    return getAppOptions().getLibrary();
-  },
-  setInitialLevelLibraries(libraries) {
-    getAppOptions().level.libraries = libraries;
-  },
-  getLevelLibraries() {
-    return window.Applab && Applab.getLibraries();
-  },
   setInitialLevelSource(levelSource) {
     getAppOptions().level.lastAttempt = levelSource;
   },
@@ -518,6 +509,13 @@ const sourceHandler = {
     } else {
       callback({});
     }
+  },
+  setInitialGeneratedProperties(generatedProperties) {
+    getAppOptions().initialGeneratedProperties = generatedProperties;
+  },
+  getGeneratedProperties() {
+    const {getGeneratedProperties} = getAppOptions();
+    return getGeneratedProperties && getGeneratedProperties();
   },
   prepareForRemix() {
     const {prepareForRemix} = getAppOptions();
