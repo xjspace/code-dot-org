@@ -3,10 +3,11 @@ import React from 'react';
 import Button from '../../templates/Button';
 import i18n from '@cdo/locale';
 import color from '@cdo/apps/util/color';
-import {assets as assetsApi} from '@cdo/apps/clientApi';
+// import {assets as assetsApi} from '@cdo/apps/clientApi';
 import {assetButtonStyles} from './AddAssetButtonRow';
-import {AudioErrorType} from './AssetManager';
-import firehoseClient from '@cdo/apps/lib/util/firehose';
+// import {AudioErrorType} from './AssetManager';
+// import firehoseClient from '@cdo/apps/lib/util/firehose';
+import vmsg from 'vmsg';
 
 const styles = {
   buttonRow: {
@@ -25,7 +26,7 @@ const styles = {
   }
 };
 
-const RECORD_MAX_TIME = 30000;
+// const RECORD_MAX_TIME = 30000;
 
 export default class AudioRecorder extends React.Component {
   static propTypes = {
@@ -39,119 +40,150 @@ export default class AudioRecorder extends React.Component {
   constructor(props) {
     super(props);
     this.timeout = null;
-    this.recorder = null;
+    this.recorder = new vmsg.Recorder({
+      wasmURL: 'https://unpkg.com/vmsg@0.3.0/vmsg.wasm'
+    });
     this.slices = [];
     this.state = {
       audioName: '',
-      recording: false
+      recording: false,
+      isLoading: false,
+      isRecording: false,
+      recordings: []
     };
   }
 
-  componentDidMount = () => {
-    //Initialize the media recorder when the component loads
-    //Check if the user has mediaDevices and request permission to use the microphone
-    if (navigator.mediaDevices) {
-      navigator.mediaDevices
-        .getUserMedia({audio: true})
-        .then(this.initializeMediaRecorder)
-        .catch(() => this.props.afterAudioSaved(AudioErrorType.INITIALIZE));
+  record = async () => {
+    //debugger;
+    this.setState({isLoading: true});
+
+    if (this.state.isRecording) {
+      const blob = await this.recorder.stopRecording();
+      this.setState({
+        isLoading: false,
+        isRecording: false,
+        recordings: this.state.recordings.concat(URL.createObjectURL(blob))
+      });
     } else {
-      this.props.afterAudioSaved(AudioErrorType.INITIALIZE);
+      try {
+        await this.recorder.initAudio();
+        await this.recorder.initWorker();
+        this.recorder.startRecording();
+        this.setState({isLoading: false, isRecording: true});
+      } catch (e) {
+        console.error(e);
+        this.setState({isLoading: false});
+      }
     }
   };
 
-  initializeMediaRecorder = stream => {
-    // Set newly initialized mediaRecorder to instance variable
-    // Media Recorder API: https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder
-    this.recorder = new MediaRecorder(stream);
+  // componentDidMount = () => {
+  // // debugger;
+  //   this.recorder = new vmsg.Recorder( {wasmURL: "../../../lib/mp3/vmsg.wasm"} );
+  //   // //Initialize the media recorder when the component loads
+  //   // //Check if the user has mediaDevices and request permission to use the microphone
+  //   // if (navigator.mediaDevices) {
+  //   //   navigator.mediaDevices
+  //   //     .getUserMedia({audio: true})
+  //   //     .then(this.initializeMediaRecorder)
+  //   //     .catch(() => this.props.afterAudioSaved(AudioErrorType.INITIALIZE));
+  //   // } else {
+  //   //   this.props.afterAudioSaved(AudioErrorType.INITIALIZE);
+  //   // }
+  // };
 
-    // Set method to save the data when it becomes available
-    this.recorder.ondataavailable = e => {
-      this.slices.push(e.data);
-    };
+  // initializeMediaRecorder = stream => {
+  //   // Set newly initialized mediaRecorder to instance variable
+  //   // Media Recorder API: https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder
+  //   this.recorder = new MediaRecorder(stream);
 
-    this.recorder.onstart = () => {
-      this.slices = [];
-    };
-  };
+  //   // Set method to save the data when it becomes available
+  //   this.recorder.ondataavailable = e => {
+  //     this.slices.push(e.data);
+  //   };
 
-  saveAudio = blob => {
-    assetsApi.putAsset(
-      this.state.audioName + '.mp3',
-      blob,
-      xhr => {
-        this.setState({audioName: ''});
-        let result = JSON.parse(xhr.response);
-        result.filename = decodeURI(result.filename);
-        this.props.onUploadDone(result);
-        this.props.afterAudioSaved(AudioErrorType.NONE);
-      },
-      error => {
-        console.error(`Audio Failed to Save: ${error}`);
-        this.props.afterAudioSaved(AudioErrorType.SAVE);
-      }
-    );
-  };
+  //   this.recorder.onstart = () => {
+  //     this.slices = [];
+  //   };
+  // };
+
+  // saveAudio = blob => {
+  //   assetsApi.putAsset(
+  //     this.state.audioName + '.mp3',
+  //     blob,
+  //     xhr => {
+  //       this.setState({audioName: ''});
+  //       let result = JSON.parse(xhr.response);
+  //       result.filename = decodeURI(result.filename);
+  //       this.props.onUploadDone(result);
+  //       this.props.afterAudioSaved(AudioErrorType.NONE);
+  //     },
+  //     error => {
+  //       console.error(`Audio Failed to Save: ${error}`);
+  //       this.props.afterAudioSaved(AudioErrorType.SAVE);
+  //     }
+  //   );
+  // };
 
   onNameChange = event => {
     this.setState({audioName: event.target.value});
   };
 
   onCancel = () => {
-    this.setState({audioName: '', recording: false}, () => {
-      this.props.afterAudioSaved(AudioErrorType.NONE);
-      // Only stop recording if it's been started
-      if (this.recorder.state !== 'inactive') {
-        clearTimeout(this.recordTimeout);
-        this.recorder.stop();
-      }
-    });
+    //   this.setState({audioName: '', recording: false}, () => {
+    //     this.props.afterAudioSaved(AudioErrorType.NONE);
+    //     // Only stop recording if it's been started
+    //     if (this.recorder.state !== 'inactive') {
+    //       clearTimeout(this.recordTimeout);
+    //       this.recorder.stop();
+    //     }
+    //   });
   };
 
-  toggleRecord = () => {
-    if (this.state.recording) {
-      this.stopRecordingAndSave();
-    } else {
-      this.startRecording();
-    }
-  };
+  // toggleRecord = () => {
+  //   if (this.state.recording) {
+  //     this.stopRecordingAndSave();
+  //   } else {
+  //     this.startRecording();
+  //   }
+  // };
 
-  startRecording = () => {
-    const studyGroup = this.props.imagePicker ? 'manage-assets' : 'library-tab';
-    this.recorder.start();
-    firehoseClient.putRecord(
-      {
-        study: 'sound-dialog-2',
-        study_group: studyGroup,
-        event: 'record-sound',
-        data_json: this.state.audioName
-      },
-      {includeUserId: true}
-    );
-    this.setState({recording: !this.state.recording});
+  // startRecording = () => {
+  //   // const studyGroup = this.props.imagePicker ? 'manage-assets' : 'library-tab';
+  //   // this.recorder.start();
+  //   // firehoseClient.putRecord(
+  //   //   {
+  //   //     study: 'sound-dialog-2',
+  //   //     study_group: studyGroup,
+  //   //     event: 'record-sound',
+  //   //     data_json: this.state.audioName
+  //   //   },
+  //   //   {includeUserId: true}
+  //   // );
+  //   // this.setState({recording: !this.state.recording});
 
-    //Stop recording after set amount of time
-    this.recordTimeout = setTimeout(this.stopRecordingAndSave, RECORD_MAX_TIME);
-  };
+  //   // //Stop recording after set amount of time
+  //   // this.recordTimeout = setTimeout(this.stopRecordingAndSave, RECORD_MAX_TIME);
+  // };
 
   //Stop recording and save the final audio
-  stopRecordingAndSave = () => {
-    if (this.state.recording) {
-      clearTimeout(this.recordTimeout);
-      this.setStopAndSaveBehavior();
-      this.recorder.stop();
-      this.setState({recording: !this.state.recording});
-    }
-  };
+  // stopRecordingAndSave = () => {
+  //   if (this.state.recording) {
+  //     clearTimeout(this.recordTimeout);
+  //     this.setStopAndSaveBehavior();
+  //     this.recorder.stop();
+  //     this.setState({recording: !this.state.recording});
+  //   }
+  // };
 
-  //Set the recorder onstop behavior to save the final audio blob
-  setStopAndSaveBehavior = () => {
-    this.recorder.onstop = () => {
-      const blob = new Blob(this.slices, {type: 'audio/mpeg'});
-      this.saveAudio(blob);
-      this.recorder.onstop = () => {};
-    };
-  };
+  // //Set the recorder onstop behavior to save the final audio blob
+  // setStopAndSaveBehavior = () => {
+  //   this.recorder.onstop = () => {
+  //     const blob = new Blob(this.slices, {type: 'audio/mpeg'});
+  //     this.saveAudio(blob);
+  //     this.recorder.onstop = () => {};
+  //   };
+  // };
 
   render() {
     return (
@@ -171,7 +203,7 @@ export default class AudioRecorder extends React.Component {
           )}
           <span>
             <Button
-              onClick={this.toggleRecord}
+              onClick={this.record}
               id="start-stop-record"
               style={assetButtonStyles.button}
               color={Button.ButtonColor.blue}
@@ -188,6 +220,13 @@ export default class AudioRecorder extends React.Component {
               text={i18n.cancel()}
               size="large"
             />
+            <ul style={{listStyle: 'none', padding: 0}}>
+              {this.state.recordings.map(url => (
+                <li key={url}>
+                  <audio src={url} controls />
+                </li>
+              ))}
+            </ul>
           </span>
         </div>
         <div style={styles.warning}>{i18n.recordedSoundsBrowserWarning()}</div>
