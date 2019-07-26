@@ -3,9 +3,9 @@ import React from 'react';
 import Button from '../../templates/Button';
 import i18n from '@cdo/locale';
 import color from '@cdo/apps/util/color';
-// import {assets as assetsApi} from '@cdo/apps/clientApi';
+import {assets as assetsApi} from '@cdo/apps/clientApi';
 import {assetButtonStyles} from './AddAssetButtonRow';
-// import {AudioErrorType} from './AssetManager';
+import {AudioErrorType} from './AssetManager';
 // import firehoseClient from '@cdo/apps/lib/util/firehose';
 import vmsg from 'vmsg';
 
@@ -59,6 +59,21 @@ export default class AudioRecorder extends React.Component {
 
     if (this.state.isRecording) {
       const blob = await this.recorder.stopRecording();
+      assetsApi.putAsset(
+        this.state.audioName + '.mp3',
+        blob,
+        xhr => {
+          this.setState({audioName: ''});
+          let result = JSON.parse(xhr.response);
+          result.filename = decodeURI(result.filename);
+          this.props.onUploadDone(result);
+          this.props.afterAudioSaved(AudioErrorType.NONE);
+        },
+        error => {
+          console.error(`Audio Failed to Save: ${error}`);
+          this.props.afterAudioSaved(AudioErrorType.SAVE);
+        }
+      );
       this.setState({
         isLoading: false,
         isRecording: false,
