@@ -183,7 +183,7 @@ module Pd::SurveyPipeline::Helper
     # Workers read from and write to this object.
     context = {
       current_user: current_user,
-      filters: {workshop_ids: @workshop.id}
+      filters: {workshop_ids: workshop.id}
     }
 
     # Assembly line to summarize CSF surveys
