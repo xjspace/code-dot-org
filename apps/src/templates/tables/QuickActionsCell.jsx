@@ -70,14 +70,12 @@ export default class QuickActionsCell extends Component {
 
   // Menu open
   open = () => {
-    console.log('QuickActionsCell menu open');
     this.updateMenuLocation();
     window.addEventListener('resize', throttle(this.updateMenuLocation, 50));
     this.setState({open: true, canOpen: false});
-    firehoseClient.putRecord({
-      study: 'quick-actions',
-      event: 'open-menu'
-    });
+    if (this.props.experimentDetails) {
+      firehoseClient.putRecord(this.props.experimentDetails);
+    }
   };
 
   // Menu closed
