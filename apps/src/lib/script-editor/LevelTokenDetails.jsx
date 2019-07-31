@@ -1,7 +1,8 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 import {connect} from 'react-redux';
-import VirtualizedSelect from 'react-virtualized-select';
+import loadable from 'loadable-components';
+const VirtualizedSelect = loadable(() => import('react-virtualized-select'));
 import 'react-virtualized/styles.css';
 import 'react-select/dist/react-select.css';
 import 'react-virtualized-select/styles.css';
