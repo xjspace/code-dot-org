@@ -11,6 +11,7 @@ import {
   SuccessDialog
 } from '@cdo/apps/lib/ui/LegacyDialogContents';
 import i18n from '@cdo/locale';
+import videos from '@cdo/apps/code-studio/videos';
 
 /*
  * This file contains general logic for displaying modal dialogs
@@ -145,7 +146,7 @@ export function processResults(onComplete, beforeHook) {
         }
 
         if (lastServerResponse.videoInfo) {
-          window.dashboard.videos.showVideoDialog(lastServerResponse.videoInfo);
+          videos.showVideoDialog(lastServerResponse.videoInfo);
         } else if (lastServerResponse.endOfStageExperience) {
           const body = document.createElement('div');
           const stageInfo = lastServerResponse.previousStageInfo;
