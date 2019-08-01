@@ -765,6 +765,7 @@ describe('entry tests', () => {
           name: 'webpack-runtime'
         },
         splitChunks: {
+          maxInitialRequests: 100,
           cacheGroups: {
             // Pull any module shared by 2+ appsEntries into the "common" chunk.
             common: {
@@ -817,6 +818,39 @@ describe('entry tests', () => {
                 return chunkNames.includes(chunk.name);
               },
               priority: 20
+            },
+            vendors: {
+              name: 'vendors',
+              priority: 30,
+              chunks: chunk => {
+                // all 'initial' chunks except otherEntries
+                const chunkNames = _.concat(
+                  _.keys(codeStudioEntries),
+                  _.keys(appsEntries),
+                  _.keys(pegasusEntries),
+                  _.keys(professionalDevelopmentEntries),
+                  _.keys(internalEntries)
+                );
+                return chunkNames.includes(chunk.name);
+              },
+              test(module) {
+                return [
+                  'canvg',
+                  'core-js',
+                  'immutable',
+                  'lodash',
+                  'moment',
+                  'pepjs',
+                  'radium',
+                  'react',
+                  'react-dom',
+                  'wgxpath'
+                ].some(libName =>
+                  new RegExp(`/apps/node_modules/${libName}/`).test(
+                    module.resource
+                  )
+                );
+              }
             }
           }
         }
