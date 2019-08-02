@@ -707,6 +707,7 @@ describe('entry tests', () => {
           internalEntries,
           pegasusEntries,
           professionalDevelopmentEntries,
+          sharedEntries,
           otherEntries
         ),
         function(val) {
