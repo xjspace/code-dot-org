@@ -48,7 +48,10 @@ module Rack
             "style-src 'self' https: 'unsafe-inline'",
             "img-src 'self' https: data: blob:",
             "font-src 'self' https: data:",
+            "worker-src blob:",
+            "child-src blob:",
             "connect-src 'self' https: https://api.pusherapp.com wss://ws.pusherapp.com wss://*.firebaseio.com http://localhost:8080",
+            "connect-src https://*.tiles.mapbox.com https://api.mapbox.com https://events.mapbox.com",
             "media-src 'self' https: http://vaas.acapela-group.com",
             "report-uri #{CDO.code_org_url('https/mixed-content')}"
           ]
