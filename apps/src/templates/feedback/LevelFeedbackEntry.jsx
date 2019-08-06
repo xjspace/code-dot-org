@@ -112,7 +112,7 @@ export default class LevelFeedbackEntry extends Component {
     const baseHeight = performance && comment.length > 2 ? 132 : 112;
 
     const style = {
-      backgroundColor: seenByStudent ? color.lightest_teal : color.white,
+      backgroundColor: seenByStudent ? color.background_gray : color.white,
       height: this.state.expanded ? 'auto' : baseHeight,
       overflow: this.state.expanded ? 'none' : 'hidden',
       ...styles.main
