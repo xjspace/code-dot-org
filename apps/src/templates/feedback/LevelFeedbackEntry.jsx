@@ -19,39 +19,41 @@ const styles = {
     boxSizing: 'border-box'
   },
   lessonDetails: {
-    width: '75%',
-    marginLeft: 25,
-    marginTop: 15,
-    marginBottom: 5
+    width: '88%',
+    marginLeft: 20,
+    marginTop: 8,
+    marginBottom: 4
   },
   lessonLevel: {
-    fontSize: 16,
-    marginBottom: 8,
-    color: color.teal
+    fontSize: 18,
+    lineHeight: '24px',
+    marginBottom: 4,
+    color: color.teal,
+    fontFamily: '"Gotham 5r", sans-serif'
   },
   unit: {
-    color: color.charcoal
+    color: color.dark_charcoal
   },
   time: {
-    marginTop: 15,
-    fontStyle: 'italic',
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: '17px',
     color: color.light_gray,
     float: 'left'
   },
   comment: {
-    fontStyle: 'italic',
-    color: color.charcoal,
-    marginLeft: 25,
-    marginRight: 25,
-    fontSize: 14
+    color: color.dark_charcoal,
+    marginLeft: 20,
+    marginRight: 20,
+    fontSize: 14,
+    lineHeight: '21px',
+    fontFamily: '"Gotham 5r", sans-serif'
   },
-  icon: {
-    fontSize: 18
-  },
-  iconBox: {
-    float: 'left',
-    paddingLeft: 25,
-    cursor: 'pointer'
+  showMore: {
+    color: color.teal,
+    cursor: 'pointer',
+    fontSize: 14,
+    zIndex: 20
   },
   commentBox: {
     float: 'left',
@@ -102,14 +104,13 @@ export default class LevelFeedbackEntry extends Component {
       unitName,
       created_at,
       comment,
-      performance,
-      performance_details
+      performance
     } = this.props.feedback;
 
     const seenByStudent = seen_on_feedback_page_at || student_first_visited_at;
-
+    const commentExists = comment.length > 2;
     // These heights ensure that up to two lines of the comment will be visible, and a 'sneak peak' of the third line for long comments.
-    const baseHeight = performance && comment.length > 2 ? 132 : 112;
+    const baseHeight = performance && commentExists ? 132 : 112;
 
     const style = {
       backgroundColor: seenByStudent ? color.background_gray : color.white,
@@ -131,11 +132,10 @@ export default class LevelFeedbackEntry extends Component {
       performanceLevel4: i18n.rubricLevelFourHeader()
     };
 
-    let rubricText = `${i18n.feedbackRubricEvaluation()}:
-    ${rubricPerformance[performance]} - ${performance_details}`;
+    const rubricText = rubricPerformance[performance];
 
-    const showRightCaret = this.longComment() && !this.state.expanded;
-    const showDownCaret = this.longComment() && this.state.expanded;
+    const showDownChevron = this.longComment() && !this.state.expanded;
+    const showUpChevron = this.longComment() && this.state.expanded;
 
     return (
       <div
@@ -157,22 +157,28 @@ export default class LevelFeedbackEntry extends Component {
           </div>
         </div>
         <TimeAgo style={styles.time} dateString={created_at} />
-        {performance && <div style={performanceStyle}>{rubricText}</div>}
-        {showRightCaret ? (
-          <span style={styles.iconBox}>
-            <FontAwesome style={styles.icon} icon="caret-right" />
-          </span>
-        ) : null}
-        {showDownCaret ? (
-          <span style={styles.iconBox}>
-            <FontAwesome style={styles.icon} icon="caret-down" />
-          </span>
-        ) : null}
-        <span style={styles.commentBox}>
-          <div ref={r => (this.comment = r)} style={styles.comment}>
-            {comment}
+        {performance && (
+          <div style={performanceStyle}>
+            {i18n.feedbackRubricEvaluation({rubricText})}
           </div>
-        </span>
+        )}
+        {commentExists && (
+          <span style={styles.commentBox}>
+            <div ref={r => (this.comment = r)} style={styles.comment}>
+              &quot;{comment}&quot;
+            </div>
+          </span>
+        )}
+        {showDownChevron ? (
+          <span style={styles.showMore}>
+            {i18n.feedbackShowMore()} <FontAwesome icon="chevron-down" />
+          </span>
+        ) : null}
+        {showUpChevron ? (
+          <span style={styles.showMore}>
+            {i18n.feedbackShowMore()} <FontAwesome icon="chevron-up" />
+          </span>
+        ) : null}
       </div>
     );
   }
