@@ -45,6 +45,7 @@
 - if (use_applab || use_gamelab || use_weblab) && !hide_source
   %script{src: minifiable_asset_path('js/fileupload/jquery.iframe-transport.js')}
   %script{src: minifiable_asset_path('js/fileupload/jquery.fileupload.js')}
+  %link{href: asset_path('wasm/vmsg/vmsg.wasm'), type: 'application/wasm'}
 
 - if use_phaser
   %script{src: minifiable_asset_path('js/phaser/phaser.js')}

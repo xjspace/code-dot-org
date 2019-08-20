@@ -41,7 +41,7 @@ export default class AudioRecorder extends React.Component {
     super(props);
     this.timeout = null;
     this.recorder = new vmsg.Recorder({
-      wasmURL: 'https://unpkg.com/vmsg@0.3.0/vmsg.wasm'
+      wasmURL: '/assets/wasm/vmsg/vmsg.wasm'
     });
     this.slices = [];
     this.state = {

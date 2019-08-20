@@ -86,6 +86,20 @@ class SharedResources < Sinatra::Base
     pass
   end
 
+  # Wasm
+  get '/assets/wasm/vmsg/*.wasm' do |_path|
+    # image_data = process_image(path, settings.image_extnames)
+    # pass if image_data.nil?
+    # last_modified image_data[:last_modified]
+    # content_type image_data[:content_type]
+    # cache :image
+    # send_file(image_data[:file]) if image_data[:file]
+    # image_data[:content]
+    content_type "application/wasm"
+    cache :static
+    send_file '/home/ec2-user/environment/code-dot-org/apps/build/package/wasm/vmsg/vmsg.wasm', type: 'application/wasm'
+  end
+
   # Images
   get '/shared/images/*' do |_path|
     path = request.path_info

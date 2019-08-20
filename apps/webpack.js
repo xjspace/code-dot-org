@@ -92,6 +92,7 @@ var baseConfig = {
   },
   module: {
     rules: [
+      {test: /\.wasm$/, loader: 'wasm-loader'},
       {test: /\.exported_json$/, loader: 'raw-loader'},
       {
         test: /\.ejs$/,
@@ -331,6 +332,16 @@ function create(options) {
       // application to load .min.js locally.
       filename: '[name].' + (minify && !debugMinify ? 'min.' : '') + 'js'
     },
+    // output: {
+    //   path: outputDir,
+    //   publicPath: '/assets/wasm/',
+
+    //   // When debugging minified code, use the .js suffix (rather than .min.js)
+    //   // to allow the application to load minified js locally without running it
+    //   // through the rails asset pipeline. This is much simpler than hacking the
+    //   // application to load .min.js locally.
+    //   filename: '[name].wasm'
+    // },
     devtool: !process.env.CI && options.minify ? 'source-map' : devtool,
     entry: entries,
     externals: externals,

@@ -290,6 +290,12 @@ describe('entry tests', () => {
           cwd: 'lib/fileupload',
           src: ['*.js'],
           dest: 'build/package/js/fileupload/'
+        },
+        {
+          expand: true,
+          cwd: 'lib/vmsg',
+          src: ['vmsg.wasm'],
+          dest: 'build/package/wasm/vmsg/'
         }
       ]
     }
