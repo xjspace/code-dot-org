@@ -1,3 +1,7 @@
+// A simple view to display output of controller action WorkshopDailySurveyController#new_daily_surveys
+
+= render partial: 'pd/jotform_loader'
+
 %ol
   - @survey_list.each do |survey|
     %li
@@ -6,4 +10,6 @@
         %li= "submitted: #{survey.submitted}"
         %li= "form_id: #{survey.form_id}"
         %li= "form_params: #{survey.form_params}"
+        %li= jotform_iframe survey.form_id, survey.form_params
 
+= render partial: 'pd/jotform_embed'

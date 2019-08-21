@@ -10,9 +10,10 @@ module Pd
     # Require login
     authorize_resource class: 'Pd::Enrollment'
 
-    SurveyItem = Struct.new(:title, :submitted, :form_id, :form_params)
+    # TODO: how many ways a survey item can be displayed? As submitted (done), As not done, As not eligible. 2 params: not_eligible_reason & submitted
+    SurveyItem = Struct.new(:title, :submitted, :ineligible_reason, :form_id, :form_params)
 
-    # General workshop daily survey.
+    # General workshop daily survey for summer and academic year workshops.
     # GET '/pd/workshop_survey/day/:day'
     # Where day 0 is the pre-workshop survey, and days 1-5 are the 1st through 5th sessions (index 0-4)
     #
@@ -20,71 +21,28 @@ module Pd
     # for the relevant session id.
     # The pre-workshop survey, which has no session id, will redirect to thanks.
     def new_general
-      # Accept days 0 through 4. Day 5 is the post workshop survey and should use the new_post route
       day = params[:day].to_i
       return render_404 if day < 0
 
+      # Find the workshop for which user needs to fill out surveys
       workshop =
-        if params[:enrollmentCode].present?
-          Pd::Enrollment.find_by!(code: params[:enrollmentCode]).workshop
+        if params[:workshopId].present?
+          Workshop.find_by(id: params[:workshopId])
+        elsif params[:enrollmentCode].present?
+          Pd::Enrollment.find_by(code: params[:enrollmentCode]).workshop
         else
           Workshop.
-          where(course: [COURSE_CSD, COURSE_CSP]).
-          where.not(subject: SUBJECT_FIT).
-          nearest_attended_or_enrolled_in_by(current_user)
+            where(course: [COURSE_CSD, COURSE_CSP]).
+            where.not(subject: SUBJECT_FIT).
+            nearest_attended_or_enrolled_in_by(current_user)
         end
 
       return render :not_enrolled unless workshop
-      # There's no pre-workshop survey for academic year workshops
-      return render_404 if day == 0 && !workshop.summer?
-      # There's no post workshop survey for summer workshops
-      return render_404 if day == 5 && workshop.summer?
 
-      session = nil
-      if day > 0
-        session = workshop.sessions[day - 1]
-        return render_404 unless session
-        return render :too_late unless session.open_for_attendance? || day == workshop.sessions.size
-
-        return render :no_attendance unless session.attendances.exists?(teacher: current_user)
-      end
-
-      @form_id = WorkshopDailySurvey.get_form_id_for_subject_and_day workshop.subject, day
-
-      # Pass these params to the form and to the submit redirect to identify unique responses
-      key_params = {
-        environment: Rails.env,
-        userId: current_user.id,
-        workshopId: workshop.id,
-        day: day,
-        formId: @form_id,
-        sessionId: session&.id,
-      }
-
-      return redirect_general(key_params) if response_exists_general?(key_params)
-
-      @form_params = key_params.merge(
-        userName: current_user.name,
-        userEmail: current_user.email,
-        workshopCourse: workshop.course,
-        workshopSubject: workshop.subject,
-        regionalPartnerName: workshop.regional_partner&.name,
-        submitRedirect: url_for(action: 'submit_general', params: {key: key_params})
-      )
-
-      return if experimental_redirect! @form_id, @form_params
-
-      if CDO.newrelic_logging
-        NewRelic::Agent.record_custom_event(
-          "RenderJotFormView",
-          {
-            route: "GET /pd/workshop_survey/day/#{day}",
-            form_id: @form_id,
-            workshop_course: workshop.course,
-            workshop_subject: workshop.subject,
-            regional_partner_name: workshop.regional_partner&.name,
-          }
-        )
+      if workshop.summer?
+        new_summer_daily current_user, workshop, day
+      else
+        new_academic_year_daily current_user, workshop, day
       end
     end
 
@@ -274,134 +232,99 @@ module Pd
       render_csf_survey(POST_DEEPDIVE_SURVEY, attended_workshop)
     end
 
-    # GET /pd/workshop_survey/ayw/day/:day
-    # Optional params
-    # workshopId. http://localhost-studio.code.org:3000/pd/workshop_survey/ayw/day/1?workshopId=1234
-    # enrollmentCode. http://localhost-studio.code.org:3000/pd/workshop_survey/awy/day/1?enrollmentCode=ZVWJHMTPZW
-    def new_daily_surveys
-      # 1. Determine workshop user is in. (Add optional workshop_id param good for testing purpose and also real troubleshooting)
-      day = params[:day].to_i
-      workshop =
-        if params[:workshop_id]
-          Workshop.find_by(id: params[:workshop_id])
-        elsif params[:enrollmentCode]
-          Pd::Enrollment.find_by(code: params[:enrollmentCode]).workshop
-        else
-          Workshop.
-            where(course: [COURSE_CSD, COURSE_CSP]).
-            where.not(subject: SUBJECT_FIT).
-            nearest_attended_or_enrolled_in_by(current_user)
-        end
-
-      # 1.b. Validate info
-      # Must have valid workshop, session, and attendance.
-      # No time constraint yet. (Is that constraint necessary?)
-      return render :not_enrolled unless workshop  # better error message: cannot find workshop
-      return render_404 if day <= 0
-
-      session = workshop.sessions[day - 1]
-      return render_404 unless session
-      return render :no_attendance unless session.attendances.exists?(teacher: current_user)
-
-      # 2. Get all surveys an user need to fill out for this context (workshop + day)
-      # Not last day: daily survey, facilitator survey (x number of facilitator)
-      # Last day of a workshop: post survey
-      # 3. Check what surveys have already submitted
-      @survey_list = []
-      @survey_list << SurveyItem.new('Daily').tap do |item|
-        item.form_id = WorkshopDailySurvey.get_form_id_for_subject_and_day workshop.subject, day
-
-        key_params = {
-          environment: Rails.env,
-          userId: current_user.id,
-          workshopId: workshop.id,
-          sessionId: session.id,
-          day: day,
-          formId: item.form_id,
-        }
-
-        item.submitted = response_exists_general?(key_params)
-
-        unless item.submitted
-          item.form_params = key_params.merge(
-            userName: current_user.name,
-            userEmail: current_user.email,
-            workshopCourse: workshop.course,
-            workshopSubject: workshop.subject,
-            regionalPartnerName: workshop.regional_partner&.name
-          )
-        end
-      end
-
-      workshop.facilitators.order(:name, :id).each_with_index do |facilitator, index|
-        @survey_list << SurveyItem.new("Facilitator #{facilitator.name}").tap do |item|
-          item.form_id = WorkshopFacilitatorDailySurvey.form_id workshop.subject
-
-          key_params = {
-            environment: Rails.env,
-            userId: current_user.id,
-            workshopId: workshop.id,
-            sessionId: session.id,
-            day: day,
-            facilitatorId: facilitator.id,
-            facilitatorIndex: index,
-            formId: item.form_id,
-          }
-
-          item.submitted = response_exists_facilitator?(key_params)
-          unless item.submitted
-            item.form_params = key_params.merge(
-              userName: current_user.name,
-              userEmail: current_user.email,
-              workshopCourse: workshop.course,
-              workshopSubject: workshop.subject,
-              regionalPartnerName: workshop.regional_partner&.name,
-              facilitatorName: facilitator.name,
-              facilitatorPosition: index + 1,
-              numFacilitators: workshop.facilitators.size
-            )
-          end
-        end
-      end
-
-      if day == workshop.sessions.length
-        @survey_list << SurveyItem.new('Post workshop').tap do |item|
-          item.form_id = WorkshopDailySurvey.get_form_id_for_subject_and_day workshop.subject, POST_WORKSHOP_FORM_KEY
-
-          key_params = {
-            environment: Rails.env,
-            userId: current_user.id,
-            workshopId: workshop.id,
-            sessionId: session.id,
-            day: workshop.sessions.size,
-            formId: item.form_id
-          }
-
-          item.submitted = response_exists_general?(key_params)
-          unless item.submitted
-            item.form_params = key_params.merge(
-              userName: current_user.name,
-              userEmail: current_user.email,
-              workshopCourse: workshop.course,
-              workshopSubject: workshop.subject,
-              regionalPartnerName: workshop.regional_partner&.name
-            )
-          end
-        end
-      end
-
-      # 4. Generate view with iframe(s) for un-submitted surveys. render: new_ayw. params = [title (str), completed (boolean), form_id (number), form_params (hash)]
-      # Mock view
-      render :new_daily_surveys
-
-      # 5. Migrate new_general to new_daily_surveys (change name to something more generic)
-    end
-
     # GET /pd/workshop_survey/thanks
     def thanks
     end
 
     protected
+
+    def new_summer_daily(user, workshop, day)
+      # Accept days 0 through 4. Day 5 is the post workshop survey and should use the new_post route
+      # There's no pre-workshop survey for academic year workshops
+      return render_404 if day == 0 && !workshop.summer?
+      # There's no post workshop survey for summer workshops
+      return render_404 if day == 5 && workshop.summer?
+
+      session = nil
+      if day > 0
+        session = workshop.sessions[day - 1]
+        return render_404 unless session
+        return render :too_late unless session.open_for_attendance? || day == workshop.sessions.size
+
+        return render :no_attendance unless session.attendances.exists?(teacher: user)
+      end
+
+      @form_id = WorkshopDailySurvey.get_form_id_for_subject_and_day workshop.subject, day
+
+      # Pass these params to the form and to the submit redirect to identify unique responses
+      key_params = {
+        environment: Rails.env,
+        userId: user.id,
+        workshopId: workshop.id,
+        day: day,
+        formId: @form_id,
+        sessionId: session&.id,
+      }
+
+      return redirect_general(key_params) if response_exists_general?(key_params)
+
+      @form_params = key_params.merge(
+        userName: user.name,
+        userEmail: user.email,
+        workshopCourse: workshop.course,
+        workshopSubject: workshop.subject,
+        regionalPartnerName: workshop.regional_partner&.name,
+        submitRedirect: url_for(action: 'submit_general', params: {key: key_params})
+      )
+
+      return if experimental_redirect! @form_id, @form_params
+
+      if CDO.newrelic_logging
+        NewRelic::Agent.record_custom_event(
+          "RenderJotFormView",
+          {
+            route: "GET /pd/workshop_survey/day/#{day}",
+            form_id: @form_id,
+            workshop_course: workshop.course,
+            workshop_subject: workshop.subject,
+            regional_partner_name: workshop.regional_partner&.name,
+          }
+        )
+      end
+
+      render :new_general
+    end
+
+    def new_academic_year_daily(user, workshop, day)
+      # Validate workshop and session (day)
+      session = workshop.sessions[day - 1]
+      return render_404 unless session
+
+      # Get all surveys user need to fill out for this workshop session
+      @survey_list = []
+      @survey_list << get_daily_workshop_survey(user, workshop, day)
+      workshop.facilitators.order(:name, :id).each_with_index do |facilitator, index|
+        @survey_list << get_daily_facilitator_survey(user, workshop, day, facilitator, index)
+      end
+      @survey_list << get_post_workshop_survey(user, workshop) if day == workshop.sessions.length
+
+      if CDO.newrelic_logging
+        NewRelic::Agent.record_custom_event(
+          "UserVisitDailySurveys",
+          {
+            route: "GET /pd/workshop_survey/ayw/day/#{day}",
+            user_id: user.id,
+            workshop_id: workshop.id,
+            day: day,
+            workshop_course: workshop.course,
+            workshop_subject: workshop.subject,
+            regional_partner_name: workshop.regional_partner&.name,
+          }
+        )
+      end
+
+      render :new_daily_surveys
+    end
 
     def response_exists_general?(key_params)
       WorkshopDailySurvey.response_exists?(
@@ -498,6 +421,99 @@ module Pd
       end
 
       render :new_general
+    end
+
+    def get_daily_workshop_survey(user, workshop, day)
+      session = workshop.sessions[day - 1]
+
+      SurveyItem.new('Daily session').tap do |item|
+        item.ineligible_reason = 'No attendance' unless session.attendances.exists?(teacher: user)
+        item.ineligible_reason = 'Session is closed' unless session.too_late_for_attendance?
+        next if item.ineligible_reason
+
+        item.form_id = WorkshopDailySurvey.get_form_id_for_subject_and_day workshop.subject, day
+        key_params = {
+          environment: Rails.env,
+          userId: user.id,
+          workshopId: workshop.id,
+          sessionId: session.id,
+          day: day,
+          formId: item.form_id,
+        }
+
+        item.submitted = response_exists_general?(key_params)
+        unless item.submitted
+          item.form_params = key_params.merge(
+            userName: user.name,
+            userEmail: user.email,
+            workshopCourse: workshop.course,
+            workshopSubject: workshop.subject,
+            regionalPartnerName: workshop.regional_partner&.name
+          )
+        end
+      end
+    end
+
+    def get_daily_facilitator_survey(user, workshop, day, facilitator, facilitator_index)
+      SurveyItem.new("Facilitator #{facilitator.name}").tap do |item|
+        item.ineligible_reason = 'No attendance' unless session.attendances.exists?(teacher: user)
+        # TODO: is the too soon/too late check necessary?
+        item.ineligible_reason = 'Session is closed' if session.too_late_for_attendance? || day == workshop.sessions.size
+
+        next if item.ineligible_reason
+
+        item.form_id = WorkshopFacilitatorDailySurvey.form_id workshop.subject
+        key_params = {
+          environment: Rails.env,
+          userId: user.id,
+          workshopId: workshop.id,
+          sessionId: session.id,
+          day: day,
+          facilitatorId: facilitator.id,
+          facilitatorIndex: facilitator_index,
+          formId: item.form_id,
+        }
+
+        item.submitted = response_exists_facilitator?(key_params)
+        unless item.submitted
+          item.form_params = key_params.merge(
+            userName: user.name,
+            userEmail: user.email,
+            workshopCourse: workshop.course,
+            workshopSubject: workshop.subject,
+            regionalPartnerName: workshop.regional_partner&.name,
+            facilitatorName: facilitator.name,
+            facilitatorPosition: facilitator_index + 1,
+            numFacilitators: workshop.facilitators.size
+          )
+        end
+      end
+    end
+
+    def get_post_workshop_survey(user, workshop)
+      SurveyItem.new('Post workshop').tap do |item|
+        item.form_id = WorkshopDailySurvey.get_form_id_for_subject_and_day workshop.subject, POST_WORKSHOP_FORM_KEY
+
+        key_params = {
+          environment: Rails.env,
+          userId: user.id,
+          workshopId: workshop.id,
+          sessionId: workshop.sessions.last.id,
+          day: workshop.sessions.size,
+          formId: item.form_id
+        }
+
+        item.submitted = response_exists_general?(key_params)
+        unless item.submitted
+          item.form_params = key_params.merge(
+            userName: user.name,
+            userEmail: user.email,
+            workshopCourse: workshop.course,
+            workshopSubject: workshop.subject,
+            regionalPartnerName: workshop.regional_partner&.name
+          )
+        end
+      end
     end
 
     def key_params
