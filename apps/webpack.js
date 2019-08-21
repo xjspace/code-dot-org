@@ -92,7 +92,6 @@ var baseConfig = {
   },
   module: {
     rules: [
-      {test: /\.wasm$/, loader: 'wasm-loader'},
       {test: /\.exported_json$/, loader: 'raw-loader'},
       {
         test: /\.ejs$/,

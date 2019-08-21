@@ -41,7 +41,7 @@ export default class AudioRecorder extends React.Component {
     super(props);
     this.timeout = null;
     this.recorder = new vmsg.Recorder({
-      wasmURL: '/assets/wasm/vmsg/vmsg.wasm'
+      wasmURL: '/shared/wasm/vmsg.wasm'
     });
     this.slices = [];
     this.state = {
@@ -51,10 +51,16 @@ export default class AudioRecorder extends React.Component {
       isRecording: false,
       recordings: []
     };
+
+    this.init();
   }
 
+  init = async () => {
+    await this.recorder.initAudio();
+    await this.recorder.initWorker();
+  };
+
   record = async () => {
-    //debugger;
     this.setState({isLoading: true});
 
     if (this.state.isRecording) {
@@ -81,8 +87,6 @@ export default class AudioRecorder extends React.Component {
       });
     } else {
       try {
-        await this.recorder.initAudio();
-        await this.recorder.initWorker();
         this.recorder.startRecording();
         this.setState({isLoading: false, isRecording: true});
       } catch (e) {
@@ -235,13 +239,6 @@ export default class AudioRecorder extends React.Component {
               text={i18n.cancel()}
               size="large"
             />
-            <ul style={{listStyle: 'none', padding: 0}}>
-              {this.state.recordings.map(url => (
-                <li key={url}>
-                  <audio src={url} controls />
-                </li>
-              ))}
-            </ul>
           </span>
         </div>
         <div style={styles.warning}>{i18n.recordedSoundsBrowserWarning()}</div>
