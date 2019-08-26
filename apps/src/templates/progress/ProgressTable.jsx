@@ -44,6 +44,8 @@ class ProgressTable extends React.Component {
   render() {
     const {isSummaryView, isPlc, categorizedLessons} = this.props;
 
+    console.log("categorizedLessons", categorizedLessons)
+
     if (categorizedLessons.length === 1) {
       // Render both tables, and toggle hidden state via CSS as this has better
       // perf implications than rendering just one at a time when toggling.

@@ -1,5 +1,5 @@
 /**
- * Reducer and actions used to track what sections/scripts are are hidden on a
+ * Reducer and actions used to track what sections/scripts are hidden on a
  * per section basis.
  */
 import $ from 'jquery';
