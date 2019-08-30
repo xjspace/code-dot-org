@@ -22,6 +22,12 @@ You can do Code.org development using OSX, Ubuntu, or Windows (running Ubuntu in
 1. `gem install mysql2 -v '0.5.2' --source 'https://rubygems.org/'`
 1. `gem install rmagick -v '2.16.0' --source 'https://rubygems.org/'`
 1. `bundle install` (Problems running this step? See [tips](#bundle-install-tips) below.)
+Bundle complete! 171 Gemfile dependencies, 321 gems now installed.
+Use `bundle info [gemname]` to see where a bundled gem is installed.
+Post-install message from image_optim:
+Rails image assets optimization is extracted into image_optim_rails gem
+You can safely remove `config.assets.image_optim = false` if you are not going to use that gem
+
 1. `bundle exec rake install:hooks`
     <details>
         <summary>Troubleshoot: `rake aborted!..` </summary>
