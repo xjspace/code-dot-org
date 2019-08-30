@@ -26,7 +26,7 @@ You can do Code.org development using OSX, Ubuntu, or Windows (running Ubuntu in
 Use `bundle info [gemname]` to see where a bundled gem is installed.
 Post-install message from image_optim:
 Rails image assets optimization is extracted into image_optim_rails gem
-You can safely remove `config.assets.image_optim = false` if you are not going to use that gem
+You can safely remove `config.assets.image_optim = false` if you are not going to use that gem.
 
 1. `bundle exec rake install:hooks`
     <details>
@@ -45,7 +45,9 @@ You can safely remove `config.assets.image_optim = false` if you are not going t
 
 1. `bundle exec rake install`
   * This can take a LONG time. You can see if progress is being made by opening up a second shell and starting `mysql -u root`. Run the following command twice, with approximately a 5-10 second delay between
-  each run `select table_schema, table_name, table_rows from information_schema.tables where table_schema like 'dashboard_development' order by table_rows;`  If you see a change in the last couple of rows, the
+  each run 
+  * `select table_schema, table_name, table_rows from information_schema.tables where table_schema like 'dashboard_development' order by table_rows;`
+  If you see a change in the last couple of rows, the
   install is working correctly.
 1. `bundle exec rake build`
   * This may fail if your are on a Mac and your OSX XCode Command Line Tools were not installed properly. See Bundle Install Tips for more information.
