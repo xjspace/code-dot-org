@@ -20,6 +20,7 @@ You can do Code.org development using OSX, Ubuntu, or Windows (running Ubuntu in
 1. `cd code-dot-org`
 1. `gem install bcrypt -v '3.1.11' -source 'https://rubygems.org/'`
 1. `gem install mysql2 -v '0.5.2' --source 'https://rubygems.org/'`
+1. `gem install rmagick -v '2.16.0' --source 'https://rubygems.org/'`
 1. `bundle install` (Problems running this step? See [tips](#bundle-install-tips) below.)
 1. `bundle exec rake install:hooks`
     <details>
